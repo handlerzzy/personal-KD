@@ -1,0 +1,244 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "fileSuggestion": {
+    "type": "command",
+    "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/file-suggestion.sh"
+  },
+  "env": {
+    "SDLC_PROJECT": "true",
+    "SDLC_VERSION": "1.8.0"
+  },
+  "attribution": {
+    "commit": "Co-Authored-By: Claude (SDLC Enforced) <noreply@anthropic.com>"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git status)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git branch)",
+      "Bash(git branch --list *)",
+      "Bash(git stash *)",
+      "Bash(npm run lint *)",
+      "Bash(npm run lint)",
+      "Bash(npm run build *)",
+      "Bash(npm run build)",
+      "Bash(npx eslint *)",
+      "Bash(npx tsc *)",
+      "Bash(npm test *)",
+      "Bash(npm test)",
+      "Bash(npx vitest *)",
+      "Bash(npx jest *)",
+      "Bash(npx mocha *)",
+      "Bash(pytest *)",
+      "Bash(go test *)",
+      "Bash(cargo test *)",
+      "Read(*)",
+      "Glob(*)",
+      "Grep(*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Edit(./.env)",
+      "Edit(./.env.*)",
+      "Write(./.env)",
+      "Write(./.env.*)"
+    ],
+    "ask": [
+      "Bash(rm -rf *)",
+      "Bash(git push --force *)",
+      "Bash(git reset --hard *)",
+      "Bash(git branch -D *)"
+    ],
+    "defaultMode": "default"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/check-phase-write.sh",
+            "timeout": 3,
+            "statusMessage": "检查写入权限..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/check-phase-test.sh",
+            "timeout": 3,
+            "statusMessage": "检查命令权限..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"SDLC 提醒：文件已修改。请用 Edit 更新 .claude/project-state.md：将修改的文件路径追加到 modified_files（如未列出），并更新 last_updated。这是强制要求，不可跳过。\"}}'",
+            "timeout": 3,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-tool-failure.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/stop-check.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-compact.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-start.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-end.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/user-prompt-submit.sh",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/subagent-start.sh",
+            "timeout": 5,
+            "statusMessage": "注入 SDLC 上下文..."
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/subagent-stop.sh",
+            "timeout": 5,
+            "statusMessage": "验证子 Agent 输出..."
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/task-completed.sh",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/permission-request.sh",
+            "timeout": 5,
+            "statusMessage": "SDLC 权限决策..."
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/statusline.sh",
+    "padding": 1
+  },
+  "enabledPlugins": {
+    "context7@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "security-guidance@claude-plugins-official": true,
+    "plannotator@plannotator": true
+  },
+  "language": "zh-CN",
+  "sandbox": {
+    "enabled": true,
+    "network": {
+      "allowedDomains": [
+        "github.com",
+        "*.npmjs.org",
+        "registry.npmmirror.com",
+        "pypi.org"
+      ]
+    }
+  },
+  "spinnerVerbs": {
+    "mode": "append",
+    "verbs": [
+      "审查中",
+      "编码中",
+      "测试中",
+      "分析需求",
+      "设计方案",
+      "检查合规"
+    ]
+  }
+}

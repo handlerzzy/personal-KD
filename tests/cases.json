@@ -1,0 +1,18 @@
+[
+  {
+    "query": "什么是混合检索？",
+    "expected": "混合检索是将向量检索（Dense Retrieval）和关键词检索（Sparse Retrieval）结合的方法，通过RRF融合算法合并结果，再用CrossEncoder精排。"
+  },
+  {
+    "query": "LangGraph如何实现流式输出？",
+    "expected": "LangGraph通过stream_mode参数支持多种流式模式，包括messages模式逐token输出，updates模式逐节点输出。"
+  },
+  {
+    "query": "Qdrant支持哪些距离计算方式？",
+    "expected": "Qdrant支持Cosine、Euclid、Dot Product三种距离计算方式。"
+  },
+  {
+    "query": "MinerU支持哪些格式的文档解析？",
+    "expected": "MinerU支持PDF文档解析，可以提取为Markdown格式输出，支持OCR和自动模式。"
+  }
+]
