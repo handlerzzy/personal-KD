@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     embedding_model: str = "embedding-3"
     embedding_dimensions: int = 512
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
 settings = Settings()

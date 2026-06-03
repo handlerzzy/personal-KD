@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { KnowledgeBase, Conversation } from '../types'
+import DocList from './DocList.vue'
 
 defineProps<{
   kbs: KnowledgeBase[]
@@ -7,6 +8,7 @@ defineProps<{
   conversations: Conversation[]
   currentConv: Conversation | null
   sidebarOpen: boolean
+  docRefreshKey: number
 }>()
 
 const emit = defineEmits<{
@@ -17,6 +19,7 @@ const emit = defineEmits<{
   selectConv: [conv: Conversation]
   createConv: []
   deleteConv: [id: string]
+  deleteDoc: [docId: string]
   toggleSidebar: []
 }>()
 
@@ -81,6 +84,12 @@ function formatTime(dateStr: string) {
         </button>
       </div>
     </div>
+
+    <DocList
+      :kb-id="currentKb?.id || null"
+      :refresh-key="docRefreshKey"
+      @delete="(id) => emit('deleteDoc', id)"
+    />
 
     <div class="conv-section">
       <div class="conv-header">

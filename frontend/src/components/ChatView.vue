@@ -64,6 +64,26 @@ watch(
         v-for="msg in messages" :key="msg.id"
         :message="msg"
       />
+
+      <!-- 流式回答中 -->
+      <template v-if="streaming && (currentAnswer || currentReasoning)">
+        <div class="msg ai">
+          <div class="msg-avatar">AI</div>
+          <div class="msg-content">
+            <!-- 思考过程 -->
+            <div v-if="currentReasoning" class="thinking-box">
+              <div class="thinking-header">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 18l6-6-6-6"/></svg>
+                <span class="thinking-label">思考过程</span>
+                <span class="thinking-chars">{{ currentReasoning.length }} chars</span>
+              </div>
+              <div class="thinking-body-stream">{{ currentReasoning }}<span class="stream-cursor-inline">▊</span></div>
+            </div>
+            <!-- 回答内容 -->
+            <div class="msg-bubble-ai" v-if="currentAnswer">{{ currentAnswer }}<span class="stream-cursor-inline">▊</span></div>
+          </div>
+        </div>
+      </template>
     </div>
 
     <ChatInput

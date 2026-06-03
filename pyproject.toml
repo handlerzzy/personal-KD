@@ -23,6 +23,11 @@ dependencies = [
     "modelscope>=0.3.0",
     "python-multipart",
     "aiofiles",
+    "langchain-openai>=0.3.0",
+    "langgraph-checkpoint-sqlite>=3.1.0",
+    "aiosqlite>=0.22.1",
+    "langchain-mineru>=0.1.0",
+    "mineru-open-sdk>=0.2.0",
 ]
 
 [project.optional-dependencies]

@@ -1,17 +1,52 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import AsyncGenerator
 
+import aiosqlite
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.graph import END, START, StateGraph
 
-from app.agent.nodes.qa_node import qa_node, qa_node_stream
+from app.agent.nodes.qa_node import qa_node
 from app.agent.nodes.retrieval_node import retrieval_node
 from app.agent.state import AgentState
 
+logger = logging.getLogger(__name__)
+
 _graph = None
+_checkpointer: AsyncSqliteSaver | None = None
+_conn: aiosqlite.Connection | None = None
+
+
+async def init_checkpointer(db_path: str = "data/agent.db") -> AsyncSqliteSaver:
+    """Initialize the SQLite checkpointer for LangGraph.
+
+    Uses manual aiosqlite connection management (rather than the
+    ``from_conn_string`` context manager) to avoid compatibility issues
+    with ``__aenter__`` / ``__aexit__`` lifecycle.
+    """
+    global _checkpointer, _conn
+    if _checkpointer is None:
+        _conn = await aiosqlite.connect(db_path)
+        _checkpointer = AsyncSqliteSaver(_conn)
+        logger.info("Checkpointer initialized: %s", db_path)
+    return _checkpointer
+
+
+async def close_checkpointer() -> None:
+    """Close the checkpointer connection."""
+    global _checkpointer, _graph, _conn
+    if _conn is not None:
+        await _conn.close()
+        _conn = None
+    _checkpointer = None
+    _graph = None  # force rebuild with next init_checkpointer
+    logger.info("Checkpointer closed")
 
 
 def build_graph():
+    """Build the LangGraph graph with checkpointer."""
     global _graph
     if _graph is not None:
         return _graph
@@ -27,8 +62,39 @@ def build_graph():
     builder.add_edge("retrieve", "qa")
     builder.add_edge("qa", END)
 
-    _graph = builder.compile()
+    _graph = builder.compile(checkpointer=_checkpointer)
     return _graph
+
+
+# ---------------------------------------------------------------------------
+# Message conversion helpers
+# ---------------------------------------------------------------------------
+
+
+def _messages_from_dicts(history: list[dict] | None) -> list[BaseMessage]:
+    """Convert DB dict-style messages to LangChain ``BaseMessage`` objects.
+
+    System messages and other roles that don't map to Human/AI are skipped
+    because the system prompt is injected inside ``qa_node`` each invocation.
+    """
+    if not history:
+        return []
+    result: list[BaseMessage] = []
+    for msg in history:
+        role = msg.get("role", "")
+        content = msg.get("content", "")
+        if not content:
+            continue
+        if role == "user":
+            result.append(HumanMessage(content=content))
+        elif role == "assistant":
+            result.append(AIMessage(content=content))
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Chat runners
+# ---------------------------------------------------------------------------
 
 
 async def run_chat(
@@ -37,17 +103,21 @@ async def run_chat(
     conversation_id: str,
     history: list | None = None,
 ) -> dict:
-    """Run the chat graph and return result."""
+    """Run the chat graph and return result (non-streaming, used by evaluator)."""
     graph = build_graph()
+    config = {"configurable": {"thread_id": conversation_id}}
+
+    converted_messages = _messages_from_dicts(history)
+
     initial_state: AgentState = {
-        "messages": history or [],
+        "messages": converted_messages,
         "kb_id": kb_id,
         "query": query,
         "retrieved_docs": [],
         "reasoning": "",
         "answer": "",
     }
-    result = await graph.ainvoke(initial_state)
+    result = await graph.ainvoke(initial_state, config=config)
     return result
 
 
@@ -56,38 +126,31 @@ async def stream_chat(
     kb_id: str,
     conversation_id: str,
     history: list | None = None,
-) -> AsyncGenerator[dict, None]:
-    """Stream chat response token by token.
+) -> AsyncGenerator[tuple, None]:
+    """Stream chat via compiled graph using ``["updates", "messages"]`` modes.
 
-    Yields dicts with types: reasoning, answer, sources, done
+    Yields ``(mode, data)`` tuples:
+
+    - ``mode="updates"`` → ``data = {node_name: node_output}`` (e.g. sources from retrieve)
+    - ``mode="messages"`` → ``data = (AIMessageChunk, metadata)`` (token-level LLM output)
     """
-    # Use the streaming QA node directly for token-level streaming
-    from app.document.embedder import embed_query
-    from app.retrieval import dense, hybrid, sparse
+    graph = build_graph()
+    config = {"configurable": {"thread_id": conversation_id}}
 
-    # 1. Retrieve
-    q_emb = await embed_query(query)
-    dense_results = await dense.search(q_emb, kb_id, k=20)
-    raw_sparse = sparse.search(query, kb_id, k=20)
-    sparse_results = [
-        {"chunk_id": f"bm25_{idx}", "text": "", "score": score, "doc_id": "", "kb_id": kb_id}
-        for idx, (_, score) in enumerate(raw_sparse)
-    ]
-    fused = hybrid.rrf_fusion(dense_results, sparse_results, top_n=20)
+    converted_messages = _messages_from_dicts(history)
 
-    from app.retrieval.reranker import rerank
-    final_docs = await rerank(query, fused, top_n=5)
-
-    # 2. Build state for streaming
-    state: AgentState = {
-        "messages": history or [],
+    initial_state: AgentState = {
+        "messages": converted_messages,
         "kb_id": kb_id,
         "query": query,
-        "retrieved_docs": final_docs,
+        "retrieved_docs": [],
         "reasoning": "",
         "answer": "",
     }
 
-    # 3. Stream
-    async for event in qa_node_stream(state):
-        yield event
+    async for mode, data in graph.astream(
+        initial_state,
+        config=config,
+        stream_mode=["updates", "messages"],
+    ):
+        yield (mode, data)

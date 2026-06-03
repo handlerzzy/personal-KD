@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import logging
+import re
 from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
@@ -10,17 +12,28 @@ from app.document.chunker import split_text
 from app.document.embedder import embed_texts
 from app.document.parser import parse_document
 from app.models.document import Document
+from app.persistence.kb_repo import KbRepository
 from app.retrieval import dense, sparse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/knowledge-bases/{kb_id}/documents", tags=["Documents"])
 
 ALLOWED_TYPES = {"pdf": "pdf", "txt": "txt", "md": "md", "markdown": "md"}
+MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50MB
+
+
+def _validate_id(id_value: str, name: str = "ID") -> None:
+    """Validate that an ID is a 12-char hex string (prevents path traversal)."""
+    if not re.fullmatch(r"[0-9a-f]{12}", id_value):
+        raise HTTPException(400, f"无效的{name}格式")
 
 
 def _kb_path(kb_id: str) -> Path:
+    _validate_id(kb_id, "知识库ID")
     path = KB_DIR / kb_id
-    if not path.exists():
-        raise HTTPException(404, "知识库不存在")
+    path.mkdir(parents=True, exist_ok=True)
+    (path / "documents").mkdir(exist_ok=True)
     return path
 
 
@@ -60,26 +73,34 @@ async def upload_document(
     kb_id: str,
     file: UploadFile = File(...),
 ):
-    kb_path = _kb_path(kb_id)
+    _kb_path(kb_id)
 
     # Validate file type
-    ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
+    original_name = file.filename or "unknown"
+    ext = original_name.rsplit(".", 1)[-1].lower() if "." in original_name else ""
     file_type = ALLOWED_TYPES.get(ext)
     if not file_type:
         raise HTTPException(400, f"不支持的文件类型: .{ext}，仅支持 PDF/TXT/MD")
 
+    # Read with size limit
+    content = await file.read(MAX_UPLOAD_SIZE + 1)
+    if len(content) > MAX_UPLOAD_SIZE:
+        raise HTTPException(413, f"文件过大，最大允许 {MAX_UPLOAD_SIZE // 1024 // 1024}MB")
+
+    # Sanitize filename (strip directory components to prevent path traversal)
+    safe_name = Path(original_name).name
+
     # Save uploaded file
     upload_dir = UPLOAD_DIR / kb_id
     upload_dir.mkdir(parents=True, exist_ok=True)
-    file_path = upload_dir / file.filename
-    content = await file.read()
+    file_path = upload_dir / safe_name
     with open(file_path, "wb") as f:
         f.write(content)
 
     # Create doc record
     doc = Document(
         kb_id=kb_id,
-        filename=file.filename,
+        filename=safe_name,
         file_type=file_type,
         file_size=len(content),
     )
@@ -101,30 +122,26 @@ async def upload_document(
             sparse.add_documents(kb_id, texts)
 
     except Exception as e:
+        logger.exception("文档处理失败: %s", e)
         # Cleanup on failure
         if file_path.exists():
             file_path.unlink()
         raise HTTPException(500, f"文档处理失败: {str(e)}")
 
-    # Save doc metadata
+    # Save doc metadata (still using JSON for document metadata)
     _save_doc(doc)
 
-    # Update KB doc count
-    from app.models.kb import KnowledgeBase
-    meta_file = kb_path / "meta.json"
-    if meta_file.exists():
-        with open(meta_file) as f:
-            kb = KnowledgeBase(**json.load(f))
-        kb.doc_count = len(_load_docs(kb_id))
-        with open(meta_file, "w") as f:
-            json.dump(kb.model_dump(), f, ensure_ascii=False, indent=2)
+    # Update KB doc count in SQLite
+    await KbRepository.update_doc_count(kb_id, delta=1)
 
     return doc
 
 
 @router.delete("/{doc_id}")
 async def delete_document(kb_id: str, doc_id: str):
-    kb_path = _kb_path(kb_id)
+    _validate_id(kb_id, "知识库ID")
+    _validate_id(doc_id, "文档ID")
+    _kb_path(kb_id)
     docs = _load_docs(kb_id)
     doc = next((d for d in docs if d.id == doc_id), None)
     if not doc:
@@ -142,5 +159,8 @@ async def delete_document(kb_id: str, doc_id: str):
 
     # Delete metadata
     _delete_doc_file(doc)
+
+    # Update KB doc count in SQLite
+    await KbRepository.update_doc_count(kb_id, delta=-1)
 
     return {"ok": True}

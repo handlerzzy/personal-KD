@@ -23,14 +23,18 @@ def get_model():
         from transformers import AutoModel
         logger = logging.getLogger(__name__)
         logger.info("Loading Jina Reranker v3 from %s", settings.reranker_model_path)
-        _model = AutoModel.from_pretrained(
-            settings.reranker_model_path,
-            torch_dtype=torch.float16 if _get_device() == "cuda" else "auto",
-            device_map=_get_device(),
-            trust_remote_code=True,
-        )
-        _model.eval()
-        logger.info("Reranker loaded on %s", _get_device())
+        try:
+            _model = AutoModel.from_pretrained(
+                settings.reranker_model_path,
+                dtype=torch.float16 if _get_device() == "cuda" else "auto",
+                device_map=_get_device(),
+                trust_remote_code=True,
+            )
+            _model.eval()
+            logger.info("Reranker loaded on %s", _get_device())
+        except Exception:
+            logger.exception("Reranker 加载失败，将跳过重排序")
+            _model = None
     return _model
 
 
@@ -44,6 +48,10 @@ async def rerank(
         return []
 
     model = get_model()
+    if model is None:
+        import logging
+        logging.getLogger(__name__).warning("Reranker 不可用，跳过重排序")
+        return documents[:top_n]
     texts = [doc["text"] for doc in documents]
 
     import asyncio
@@ -66,7 +74,7 @@ async def rerank(
         idx = item.get("index")
         if idx is not None and idx < len(documents):
             doc = dict(documents[idx])
-            doc["rerank_score"] = item.get("relevance_score", 0.0)
+            doc["rerank_score"] = float(item.get("relevance_score", 0.0))
             doc["score"] = doc.get("rerank_score", doc.get("score", 0.0))
             result.append(doc)
 

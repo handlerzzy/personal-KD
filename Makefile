@@ -17,7 +17,7 @@ install-dev: venv
 # ── Run ──
 
 dev-backend:
-	uv run uvicorn app.main:app --reload --port 8000 --app-dir backend
+	cd backend && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 dev-frontend:
 	cd frontend && npm install && npm run dev

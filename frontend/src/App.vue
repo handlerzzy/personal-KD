@@ -3,6 +3,7 @@ import { ref, onMounted, watch } from 'vue'
 import Sidebar from './components/Sidebar.vue'
 import ChatView from './components/ChatView.vue'
 import KbModal from './components/KbModal.vue'
+import Toast from './components/Toast.vue'
 import { useKb } from './composables/useKb'
 import { useConversation } from './composables/useConversation'
 import { useChat } from './composables/useChat'
@@ -20,6 +21,20 @@ const sidebarOpen = ref(true)
 const kbDropdownOpen = ref(false)
 const modalType = ref<'newKb' | 'upload' | 'deleteKb' | 'newConv' | ''>('')
 const modalShow = ref(false)
+
+// Toast
+const toastShow = ref(false)
+const toastMsg = ref('')
+const toastType = ref<'success' | 'error' | 'info'>('info')
+function showToast(msg: string, type: 'success' | 'error' | 'info' = 'info') {
+  toastMsg.value = msg
+  toastType.value = type
+  toastShow.value = true
+}
+
+// Document list refresh trigger
+const docRefreshKey = ref(0)
+function refreshDocs() { docRefreshKey.value++ }
 
 onMounted(() => {
   fetchKbs()
@@ -67,9 +82,24 @@ async function handleUpload(file: File) {
   if (!currentKb.value) return
   try {
     await api.uploadDocument(currentKb.value.id, file)
+    showToast(`"${file.name}" 上传成功`, 'success')
     await fetchKbs()
+    refreshDocs()
   } catch (e: any) {
-    console.error('上传失败:', e)
+    const msg = e.message || '上传失败'
+    showToast(`上传失败: ${msg}`, 'error')
+  }
+}
+
+async function handleDeleteDoc(docId: string) {
+  if (!currentKb.value) return
+  try {
+    await api.deleteDocument(currentKb.value.id, docId)
+    showToast('文档已删除', 'success')
+    await fetchKbs()
+    refreshDocs()
+  } catch (e: any) {
+    showToast(`删除失败: ${e.message}`, 'error')
   }
 }
 
@@ -90,15 +120,12 @@ async function handleDeleteConv(convId: string) {
 
 async function handleSend(query: string) {
   if (!currentKb.value || !currentConv.value || streaming.value) return
-  await sendMessage(currentKb.value.id, currentConv.value.id, query)
-  // Refresh messages after streaming completes
-  // The stream handler appends messages server-side, we need to reload
-  // Wait a bit for the server to save, then refresh
-  setTimeout(async () => {
-    if (currentKb.value && currentConv.value) {
-      await fetchMessages(currentKb.value.id, currentConv.value.id)
-    }
-  }, 500)
+  await sendMessage(currentKb.value.id, currentConv.value.id, query, messages.value)
+  // Stream finished — refresh messages from server (remove temp user message)
+  if (currentKb.value && currentConv.value) {
+    messages.value = messages.value.filter(m => !m.id.startsWith('temp-'))
+    await fetchMessages(currentKb.value.id, currentConv.value.id)
+  }
 }
 </script>
 
@@ -117,6 +144,7 @@ async function handleSend(query: string) {
       :conversations="conversations"
       :current-conv="currentConv"
       :sidebar-open="sidebarOpen"
+      :doc-refresh-key="docRefreshKey"
       v-model:kb-dropdown-open="kbDropdownOpen"
       @select-kb="selectKb"
       @create-kb="showModal('newKb')"
@@ -125,6 +153,7 @@ async function handleSend(query: string) {
       @select-conv="selectConversation"
       @create-conv="showModal('newConv')"
       @delete-conv="handleDeleteConv"
+      @delete-doc="handleDeleteDoc"
       @toggle-sidebar="sidebarOpen = !sidebarOpen"
     />
 
@@ -149,6 +178,8 @@ async function handleSend(query: string) {
       @confirm-delete-kb="handleDeleteKb"
       @confirm-new-conv="handleNewConv"
     />
+
+    <Toast :show="toastShow" :message="toastMsg" :type="toastType" @close="toastShow = false" />
   </div>
 </template>
 

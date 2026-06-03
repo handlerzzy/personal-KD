@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from app.config import BM25_DIR
+
+logger = logging.getLogger(__name__)
 
 
 def _index_path(kb_id: str) -> str:
@@ -27,9 +30,13 @@ def delete_index(kb_id: str) -> None:
 
 def add_documents(kb_id: str, texts: list[str]) -> None:
     """Add documents to BM25 index."""
-    from bm25x import BM25
-    index = BM25(_index_path(kb_id))
-    index.add(texts)
+    try:
+        from bm25x import BM25
+        index = BM25(_index_path(kb_id))
+        index.add(texts)
+    except Exception:
+        logger.exception("BM25 添加文档失败: kb_id=%s, count=%d", kb_id, len(texts))
+        raise
 
 
 def search(query: str, kb_id: str, k: int = 20) -> list[tuple]:

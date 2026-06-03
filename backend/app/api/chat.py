@@ -1,20 +1,18 @@
 from __future__ import annotations
 
 import json
+import logging
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.agent.graph import stream_chat
-from app.api.conversation import (
-    _load_convs,
-    _load_messages,
-    _save_conv,
-    _save_messages,
-)
-from app.config import KB_DIR
-from app.models.conversation import Message
+from app.persistence.conv_repo import ConvRepository
+from app.persistence.kb_repo import KbRepository
+from app.persistence.message_repo import MessageRepository
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/knowledge-bases/{kb_id}/conversations/{conv_id}",
@@ -26,75 +24,101 @@ class ChatRequest(BaseModel):
     query: str
 
 
+def _build_sources_from_docs(docs: list[dict]) -> list[dict]:
+    """Format retrieved docs into the SSE sources payload."""
+    return [
+        {
+            "chunk_id": d.get("chunk_id", ""),
+            "text": d.get("text", "")[:200],
+            "score": round(d.get("score", 0.0), 4),
+            "doc_id": d.get("doc_id", ""),
+        }
+        for d in docs
+    ]
+
+
 @router.post("/chat")
 async def chat(kb_id: str, conv_id: str, req: ChatRequest):
-    # Verify KB and conversation exist
-    if not (KB_DIR / kb_id).exists():
+    # Verify KB exists
+    kb = await KbRepository.get(kb_id)
+    if not kb:
         raise HTTPException(404, "知识库不存在")
-    convs = _load_convs(kb_id)
-    conv = next((c for c in convs if c.id == conv_id), None)
-    if not conv:
+
+    # Verify conversation exists
+    conv = await ConvRepository.get(conv_id)
+    if not conv or conv["kb_id"] != kb_id:
         raise HTTPException(404, "对话不存在")
 
     query = req.query.strip()
     if not query:
         raise HTTPException(400, "问题不能为空")
 
-    # Load message history for context
-    history_msgs = _load_messages(kb_id, conv_id)
-
     # Save user message immediately
-    user_msg = Message(
+    await MessageRepository.add_message(
         conversation_id=conv_id,
         role="user",
         content=query,
     )
-    history_msgs.append(user_msg)
-    _save_messages(kb_id, conv_id, history_msgs)
+
+    # Load history after saving user message (single query, includes the new message)
+    history_msgs = await MessageRepository.get_messages(conv_id)
 
     async def event_generator():
         full_reasoning = ""
         full_answer = ""
+        sources_emitted = False
 
-        async for event in stream_chat(query, kb_id, conv_id, history=None):
-            event_type = event["type"]
-            event_data = event["data"]
+        try:
+            async for mode, data in stream_chat(query, kb_id, conv_id, history=history_msgs):
+                if mode == "updates":
+                    # Intercept retrieve node completion for sources
+                    update_dict: dict = data
+                    if "retrieve" in update_dict and not sources_emitted:
+                        docs = update_dict["retrieve"].get("retrieved_docs", [])
+                        sources = _build_sources_from_docs(docs)
+                        yield f"event: sources\ndata: {json.dumps({'sources': sources})}\n\n"
+                        sources_emitted = True
 
-            if event_type == "reasoning":
-                data = json.loads(event_data)
-                full_reasoning += data["token"]
-                yield f"event: reasoning\ndata: {event_data}\n\n"
+                elif mode == "messages":
+                    # Token-level LLM output: (AIMessageChunk, metadata)
+                    chunk, _metadata = data
 
-            elif event_type == "answer":
-                data = json.loads(event_data)
-                full_answer += data["token"]
-                yield f"event: answer\ndata: {event_data}\n\n"
+                    # reasoning_content from additional_kwargs (Tier 1)
+                    reasoning_token = chunk.additional_kwargs.get("reasoning_content", "")
+                    # Fallback (Tier 2): Responses API key
+                    if not reasoning_token:
+                        reasoning_token = chunk.additional_kwargs.get("reasoning", "")
+                    if reasoning_token:
+                        full_reasoning += reasoning_token
+                        yield (
+                            f"event: reasoning\n"
+                            f"data: {json.dumps({'token': reasoning_token})}\n\n"
+                        )
 
-            elif event_type == "sources":
-                yield f"event: sources\ndata: {event_data}\n\n"
+                    # Main content token
+                    content_token = chunk.content
+                    if content_token:
+                        full_answer += content_token
+                        yield (
+                            f"event: answer\n"
+                            f"data: {json.dumps({'token': content_token})}\n\n"
+                        )
 
-            elif event_type == "done":
-                # Save assistant message with full content
-                assistant_msg = Message(
-                    conversation_id=conv_id,
-                    role="assistant",
-                    content=full_answer,
-                    reasoning_content=full_reasoning,
-                )
-                all_msgs = _load_messages(kb_id, conv_id)
-                all_msgs.append(assistant_msg)
-                _save_messages(kb_id, conv_id, all_msgs)
+            # Stream completed successfully — save assistant message
+            await MessageRepository.add_message(
+                conversation_id=conv_id,
+                role="assistant",
+                content=full_answer,
+                reasoning_content=full_reasoning,
+            )
+            yield (
+                f"event: done\n"
+                f"data: {json.dumps({'reasoning': full_reasoning, 'answer': full_answer})}\n\n"
+            )
 
-                # Update conversation
-                convs = _load_convs(kb_id)
-                conv = next((c for c in convs if c.id == conv_id), None)
-                if conv:
-                    conv.message_count = len(all_msgs)
-                    from datetime import datetime
-                    conv.updated_at = datetime.utcnow().isoformat()
-                    _save_conv(conv)
-
-                yield f"event: done\ndata: {event_data}\n\n"
+        except Exception:
+            logger.exception("Chat stream 失败: kb_id=%s, conv_id=%s", kb_id, conv_id)
+            yield f"event: error\ndata: {json.dumps({'message': '对话处理失败'})}\n\n"
 
     return StreamingResponse(
         event_generator(),
