@@ -1,0 +1,1133 @@
+{
+  "timestamp": "2026-06-04 15:29:11",
+  "total": 100,
+  "total_time_seconds": 6497.976466,
+  "metrics": {
+    "faithfulness": {
+      "mean": 0.902,
+      "pass_count": 52,
+      "fail_count": 14,
+      "pass_rate": 78.8
+    },
+    "answer_correctness": {
+      "mean": 0.5134,
+      "pass_count": 7,
+      "fail_count": 43,
+      "pass_rate": 14.0
+    },
+    "context_precision": {
+      "mean": 0.6249,
+      "pass_count": 48,
+      "fail_count": 52,
+      "pass_rate": 48.0
+    },
+    "context_recall": {
+      "mean": 0.6162,
+      "pass_count": 60,
+      "fail_count": 39,
+      "pass_rate": 60.6
+    }
+  },
+  "per_sample": [
+    {
+      "id": "QA_01",
+      "paper": "第一篇论文",
+      "question": "本文提出的方法论的主要目标是什么？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": NaN,
+        "context_precision": 0.4166666666458333,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_02",
+      "paper": "第一篇论文",
+      "question": "本文方法的核心直觉是什么？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_03",
+      "paper": "第一篇论文",
+      "question": "本文使用什么算法识别离群测试问题？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": NaN,
+        "context_precision": 0.9999999999666667,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_04",
+      "paper": "第一篇论文",
+      "question": "基础覆盖率（basic coverage）的公式中，mindist(d_i)代表什么？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": NaN,
+        "context_precision": 0.8333333332916666,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_05",
+      "paper": "第一篇论文",
+      "question": "加权覆盖率（weighted coverage）与基础覆盖率的主要区别是什么？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.8666666666377778,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_06",
+      "paper": "第一篇论文",
+      "question": "多集群覆盖率（multi-cluster coverage）如何定义问题覆盖集群？",
+      "scores": {
+        "faithfulness": 0.8571428571428571,
+        "answer_correctness": NaN,
+        "context_precision": 0.9999999999666667,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_07",
+      "paper": "第一篇论文",
+      "question": "本文实现的七个步骤工作流包括哪些？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_08",
+      "paper": "第一篇论文",
+      "question": "本文使用了哪些嵌入提供商和模型？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.8933534688773375,
+        "context_precision": 0.9999999999,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_09",
+      "paper": "第一篇论文",
+      "question": "差距分析中如何识别低覆盖率聚类？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": NaN,
+        "context_precision": 0.999999999975,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_10",
+      "paper": "第一篇论文",
+      "question": "论文使用了什么降维技术进行可视化？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.9704629579941346,
+        "context_precision": 0.99999999995,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_11",
+      "paper": "第一篇论文",
+      "question": "第一个真实世界用例（产品文档）初始有多少个文档块和测试问题？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.8169386245594991,
+        "context_precision": 0.9999999999,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_12",
+      "paper": "第一篇论文",
+      "question": "初始分析中，基础覆盖率为69.4%，存在多少个语义聚类存在盲点？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.7457792089727366,
+        "context_precision": 0.9999999999,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_13",
+      "paper": "第一篇论文",
+      "question": "添加新生成的问题后，基础覆盖率提升到多少？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.12371728985214715,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_14",
+      "paper": "第一篇论文",
+      "question": "第二个用例中，为了模拟无关内容问题，向Schwab S&P 500基金说明书注入了什么文档？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.9401367386800149,
+        "context_precision": 0.99999999995,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_15",
+      "paper": "第一篇论文",
+      "question": "在第二个用例中，“bird species”聚类的覆盖率得分是多少？",
+      "scores": {
+        "faithfulness": 0.0,
+        "answer_correctness": 0.4369819789232675,
+        "context_precision": 0.99999999995,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_16",
+      "paper": "第一篇论文",
+      "question": "本文方法与RAGAS和ARES的核心区别是什么？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.9166666666361111,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_17",
+      "paper": "第一篇论文",
+      "question": "论文指出，LOF算法无法辨别什么问题？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": NaN,
+        "context_precision": 0.3333333333,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_18",
+      "paper": "第一篇论文",
+      "question": "为什么本文不追求一个“理想”的100%覆盖率？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.9999999999,
+        "context_recall": 0.5
+      }
+    },
+    {
+      "id": "QA_19",
+      "paper": "第一篇论文",
+      "question": "论文提到了哪个经典的软件测试概念作为类比？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.5720395872931883,
+        "context_precision": 0.8666666666377778,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_20",
+      "paper": "第一篇论文",
+      "question": "论文提出的未来工作方向之一是什么？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.14744829716765034,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_01",
+      "paper": "第二篇论文",
+      "question": "SEEDER的全称是什么？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.17087271840457105,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_02",
+      "paper": "第二篇论文",
+      "question": "SEEDER如何解决组合式图查询的检索难题？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.94999999997625,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_03",
+      "paper": "第二篇论文",
+      "question": "论文证明密集检索在什么情况下需要Ω(|V|)的嵌入大小？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": NaN,
+        "context_precision": 0.99999999995,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_04",
+      "paper": "第二篇论文",
+      "question": "K-HOP-WITH-FILTERING的评分函数中，候选节点u的分数如何计算？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": NaN,
+        "context_precision": 0.9999999999,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_05",
+      "paper": "第二篇论文",
+      "question": "命题B.9（Proposition B.9）证明了什么？",
+      "scores": {
+        "faithfulness": 0.5,
+        "answer_correctness": 0.12048153562615949,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_06",
+      "paper": "第二篇论文",
+      "question": "SEEDER的RL策略使用什么方法降低方差？",
+      "scores": {
+        "faithfulness": 0.875,
+        "answer_correctness": NaN,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_07",
+      "paper": "第二篇论文",
+      "question": "论文在STARK-PRIME上使用哪种文本编码器进行主要实验？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.6707622555008809,
+        "context_precision": 0.9999999999,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_08",
+      "paper": "第二篇论文",
+      "question": "在STARK-PRIME上，SEEDER相比密集检索在Hit@5上提升了多少？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": NaN,
+        "context_precision": 0.99999999995,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_09",
+      "paper": "第二篇论文",
+      "question": "在STARK-PRIME上使用Qwen3-Embedding-4B时，SEEDER的Recall@20达到多少？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.8938515901541467,
+        "context_precision": 0.9999999999,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_10",
+      "paper": "第二篇论文",
+      "question": "SEEDER的可训练参数量约为多少？与GraphFlow相比如何？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.8395376281513435,
+        "context_precision": 0.8333333332916666,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_11",
+      "paper": "第二篇论文",
+      "question": "消融研究中，移除最终评分头（scoring head）后Hit@1从0.199下降到多少？",
+      "scores": {
+        "faithfulness": 0.25,
+        "answer_correctness": 0.12660299184261128,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_12",
+      "paper": "第二篇论文",
+      "question": "STARK-PRIME知识图谱包含多少种节点类型和边？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.4842645568139307,
+        "context_precision": 0.49999999995,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_13",
+      "paper": "第二篇论文",
+      "question": "论文使用什么方法进行最终节点排名？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.3333333333,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_14",
+      "paper": "第二篇论文",
+      "question": "SEEDER在训练时如何限制搜索空间？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.8041666666465626,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_15",
+      "paper": "第二篇论文",
+      "question": "论文中使用的GNN编码器架构是什么？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.9999999999,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_16",
+      "paper": "第二篇论文",
+      "question": "在STARK-AMAZON数据集上，SEEDER的Hit@1是多少？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": 0.11966766979061692,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_17",
+      "paper": "第二篇论文",
+      "question": "论文中PRM（Process Reward Model）基线的作用是什么？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.6244837509778225,
+        "context_precision": 0.99999999995,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_18",
+      "paper": "第二篇论文",
+      "question": "SEEDER与LLM-based agentic方法（如GraphFlow）相比的主要优势是什么？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.8666666666377778,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_19",
+      "paper": "第二篇论文",
+      "question": "图6（Figure 6）显示K-HOP-WITH-FILTERING在哪个数据集上增益最小？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": 0.48213355441187633,
+        "context_precision": 0.9999999999,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_20",
+      "paper": "第二篇论文",
+      "question": "论文的理论分析中，为什么迭代局部策略在样本复杂度上优于单一体检索器？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.9999999999,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_01",
+      "paper": "第三篇论文",
+      "question": "本文提出的多智能体架构中，Creator被要求强制满足几个物理约束？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.9411082126368993,
+        "context_precision": 0.9999999999666667,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_02",
+      "paper": "第三篇论文",
+      "question": "论文验证的九个物理约束中，哪一个是由于不可压缩性而自动满足的？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.7958569278164505,
+        "context_precision": 0.499999999975,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_03",
+      "paper": "第三篇论文",
+      "question": "本文使用什么方法验证热力学一致性？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.99999999995,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_04",
+      "paper": "第三篇论文",
+      "question": "GenCANN与本文方法的关键差距是什么？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.9999999999666667,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_05",
+      "paper": "第三篇论文",
+      "question": "在Claude Opus 4.7上，Creator alone的物理约束通过率是多少？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.249999999975,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_06",
+      "paper": "第三篇论文",
+      "question": "在Kimi K2.5上，加入Inspector后真正满足约束的模型比例从37%提升到多少？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.7349595098071889,
+        "context_precision": 0.99999999995,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_07",
+      "paper": "第三篇论文",
+      "question": "Opus Inspector（无工具）将模型标记为违反时，实际违反的比例是多少？",
+      "scores": {
+        "faithfulness": 0.75,
+        "answer_correctness": 0.1722517668511936,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_08",
+      "paper": "第三篇论文",
+      "question": "Kimi Inspector在有工具访问时表现出什么调用模式？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.9074143659314922,
+        "context_precision": 0.9999999999666667,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_09",
+      "paper": "第三篇论文",
+      "question": "对于Opus-powered Creator-Inspector对，新违规在下一轮被解决的比例是多少？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.99999999995,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_10",
+      "paper": "第三篇论文",
+      "question": "论文使用了哪三个基准数据集进行验证？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": 0.11832043819258574,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_11",
+      "paper": "第三篇论文",
+      "question": "脑组织数据集包含多少个应力-应变点？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.473839711194756,
+        "context_precision": 0.9999999999,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_12",
+      "paper": "第三篇论文",
+      "question": "在合成橡胶数据上，Opus生成模型在Treloar不变平面上的相对误差如何？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_13",
+      "paper": "第三篇论文",
+      "question": "论文中用于评估泛化和外推能力的Treloar不变平面覆盖了哪些加载路径？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.9451967727486168,
+        "context_precision": 0.699999999965,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_14",
+      "paper": "第三篇论文",
+      "question": "Kimi K2.5生成的橡胶模型网络大小与基线相比如何？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.49999999995,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_15",
+      "paper": "第三篇论文",
+      "question": "图12显示，在脑组织数据上，第一次精炼后精度有何变化？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.9999999999666667,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_16",
+      "paper": "第三篇论文",
+      "question": "论文中Creator-Inspector精炼循环执行几次？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": NaN,
+        "context_precision": 0.99999999995,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_17",
+      "paper": "第三篇论文",
+      "question": "论文使用什么方法在训练时从前沿节点采样子集？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": NaN,
+        "context_precision": 0.9999999999,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_18",
+      "paper": "第三篇论文",
+      "question": "对于脑组织数据，人类专家设计的基线CANN来自哪项工作？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.9437978383476833,
+        "context_precision": 0.8055555555287036,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_19",
+      "paper": "第三篇论文",
+      "question": "论文中提到的“苦涩教训”（bitter lesson）是指什么？",
+      "scores": {
+        "faithfulness": 0.6666666666666666,
+        "answer_correctness": 0.09205092220337552,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_20",
+      "paper": "第三篇论文",
+      "question": "论文的代码和数据仓库地址是什么？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": 0.11880875060620069,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_01",
+      "paper": "第四篇论文",
+      "question": "本文针对现有VLM-based OOD检测方法中的什么问题提出解决方案？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.699999999965,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_02",
+      "paper": "第四篇论文",
+      "question": "本文的核心方法是什么？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": NaN,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_03",
+      "paper": "第四篇论文",
+      "question": "定理1（Theorem 1）证明了什么？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.12395862278662705,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_04",
+      "paper": "第四篇论文",
+      "question": "本文使用的评价指标FPR95的定义是什么？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.1543357380483718,
+        "context_precision": 0.0,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_05",
+      "paper": "第四篇论文",
+      "question": "在ImageNet-1K作为ID、ViT B/16 CLIP编码器下，本文方法在iNaturalist上的AUROC和FPR95是多少？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": 0.1656270223599893,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_06",
+      "paper": "第四篇论文",
+      "question": "本文如何模拟正标签的嵌入？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.9999999999,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_07",
+      "paper": "第四篇论文",
+      "question": "如何从未标记野生语料中选择代表性样本？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.49999999995,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_08",
+      "paper": "第四篇论文",
+      "question": "本文的理论框架中，野生数据分布Q_Y如何分解？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.8470332697911418,
+        "context_precision": 0.9999999999,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_09",
+      "paper": "第四篇论文",
+      "question": "定理2（Theorem 2）给出了什么界限？",
+      "scores": {
+        "faithfulness": 0.2,
+        "answer_correctness": 0.13745545615099647,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_10",
+      "paper": "第四篇论文",
+      "question": "本文在消融研究中测试了哪些CLIP视觉编码器架构？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_11",
+      "paper": "第四篇论文",
+      "question": "在336×336分辨率下，本文方法在SUN数据集上的AUROC比NegLabel高多少？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.12460564959751641,
+        "context_precision": 0.9999999999,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_12",
+      "paper": "第四篇论文",
+      "question": "本文使用的未标记野生语料来源是什么？",
+      "scores": {
+        "faithfulness": 0.5,
+        "answer_correctness": 0.14309106855636078,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_13",
+      "paper": "第四篇论文",
+      "question": "当L（采样的野生标签数量）增加时，OOD检测性能如何变化？",
+      "scores": {
+        "faithfulness": 0.6666666666666666,
+        "answer_correctness": NaN,
+        "context_precision": 0.9999999999,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_14",
+      "paper": "第四篇论文",
+      "question": "本文方法与NegLabel在“Common”语料源上的平均AUROC对比如何？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": NaN,
+        "context_precision": 0.3333333333,
+        "context_recall": NaN
+      }
+    },
+    {
+      "id": "QA_15",
+      "paper": "第四篇论文",
+      "question": "本文中温度参数κ的默认值是多少？",
+      "scores": {
+        "faithfulness": 0.6,
+        "answer_correctness": 0.15456744326456057,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_16",
+      "paper": "第四篇论文",
+      "question": "本文方法在ImageNet-1K上的平均FPR95（四个OOD数据集平均）是多少？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.7499999999625,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_17",
+      "paper": "第四篇论文",
+      "question": "论文中对比的“traditional visual OOD detection methods”包括哪些？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": NaN,
+        "context_precision": 0.9999999999,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_18",
+      "paper": "第四篇论文",
+      "question": "论文认为CLIP在零样本OOD检测中表现出色的原因是什么？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.6191091780593247,
+        "context_precision": 0.49999999995,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_19",
+      "paper": "第四篇论文",
+      "question": "论文中使用的“grouping strategy”的作用是什么？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_20",
+      "paper": "第四篇论文",
+      "question": "论文代码仓库地址在哪里？",
+      "scores": {
+        "faithfulness": 0.5,
+        "answer_correctness": NaN,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_01",
+      "paper": "第五篇论文",
+      "question": "本文测试了来自几个AI实验室的多少对模型（base和chat）？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.7974522822661709,
+        "context_precision": 0.9999999999666667,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_02",
+      "paper": "第五篇论文",
+      "question": "本文使用的7个模型系列中，西方制造的包括哪些？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.93968023805994,
+        "context_precision": 0.9999999999,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_03",
+      "paper": "第五篇论文",
+      "question": "中国制造的模型系列包括哪些？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_04",
+      "paper": "第五篇论文",
+      "question": "Qwen 2.5基座模型在中国偏好上的log-odds是多少？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.6691590767692295,
+        "context_precision": 0.9999999999,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_05",
+      "paper": "第五篇论文",
+      "question": "Qwen 2.5聊天模型在中国偏好上的log-odds是多少？",
+      "scores": {
+        "faithfulness": 0.5,
+        "answer_correctness": 0.6464950731582322,
+        "context_precision": 0.8055555555287036,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_06",
+      "paper": "第五篇论文",
+      "question": "后训练后，3/3西方实验室的模型方向如何变化？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": NaN,
+        "context_precision": 0.99999999995,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_07",
+      "paper": "第五篇论文",
+      "question": "哪个中国实验室的模型在后训练后出现反中国偏移？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": NaN,
+        "context_precision": 0.8666666666377778,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_08",
+      "paper": "第五篇论文",
+      "question": "Mistral 7B-instruct在法语提示下对法国的偏好变化是多少？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.8068495675714258,
+        "context_precision": 0.94999999997625,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_09",
+      "paper": "第五篇论文",
+      "question": "论文中使用什么指标来量化模型偏好？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.15362806005151627,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_10",
+      "paper": "第五篇论文",
+      "question": "本文验证模型偏好的“coherence filter”标准是什么？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.7835589126644263,
+        "context_precision": 0.9999999999,
+        "context_recall": 0.5
+      }
+    },
+    {
+      "id": "QA_11",
+      "paper": "第五篇论文",
+      "question": "GLM 4 chat在强制选择中的第一token分布是什么？",
+      "scores": {
+        "faithfulness": 0.6666666666666666,
+        "answer_correctness": 0.690625942979509,
+        "context_precision": 0.8055555555287036,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_12",
+      "paper": "第五篇论文",
+      "question": "如何对Yi 1.5 chat进行prefill校正？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.99999999998,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_13",
+      "paper": "第五篇论文",
+      "question": "在开放生成验证中，Qwen的字母选择平均为+0.03但提交位置log-odds为+0.84，解释是什么？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.99999999998,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_14",
+      "paper": "第五篇论文",
+      "question": "论文进行了哪三种鲁棒性消融实验？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.3710372833796802,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_15",
+      "paper": "第五篇论文",
+      "question": "对于Mistral，跨提示分解显示语言效应主要来自哪个部分？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.7730226151189794,
+        "context_precision": 0.9999999999,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_16",
+      "paper": "第五篇论文",
+      "question": "当添加“尽可能中立”的系统消息后，Qwen的中国偏好减弱了多少？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    },
+    {
+      "id": "QA_17",
+      "paper": "第五篇论文",
+      "question": "本文使用什么虚构国家名称来测试模型对纯语音线索的响应？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": NaN,
+        "context_precision": 0.999999999975,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_18",
+      "paper": "第五篇论文",
+      "question": "在七款后训练模型中，哪款模型在法语提示下唯一出现正面的法国偏好？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": NaN,
+        "context_precision": 0.999999999975,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_19",
+      "paper": "第五篇论文",
+      "question": "论文中对中国实验室的后训练方向做了哪些统计检验？",
+      "scores": {
+        "faithfulness": NaN,
+        "answer_correctness": NaN,
+        "context_precision": 0.99999999995,
+        "context_recall": 1.0
+      }
+    },
+    {
+      "id": "QA_20",
+      "paper": "第五篇论文",
+      "question": "论文认为主要局限性之一是什么？",
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_correctness": 0.14702574693621487,
+        "context_precision": 0.0,
+        "context_recall": 0.0
+      }
+    }
+  ]
+}

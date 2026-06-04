@@ -12,6 +12,7 @@ in the root directory and `requirements.txt` in the `/backend` subdirectory.
 
 3. When using langsmith or other packages, you need to query their latest APIs through the `context7` plugin.
 
+
 ## Project Overview
 
 Personal Knowledge Base Q&A system (kb-agent). Users upload documents (PDF/TXT/MD), the system indexes them, and answers questions via LLM with source citations.

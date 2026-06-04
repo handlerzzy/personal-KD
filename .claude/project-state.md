@@ -11,23 +11,23 @@ completed_tasks:
     key_decisions: ["langchain-mineru", "复杂度评估算法", "降级策略"]
     files_count: 4
     completed_at: "2026-06-03"
-  - task: "LangGraph流式接口改造"
-    prd_summary: "R1:graph.astream R2:checkpointer生效 R3:SSE事件不变 R4:ChatOpenAI替代httpx"
-    key_decisions: ["stream_mode=updates+messages", "ChatOpenAI统一LLM调用", "checkpointer手动连接管理"]
+  - task: "RAG系统本地评估"
+    prd_summary: "R1:25QA测试集 R2:三维度评估 R3:评估报告 R4:检索率优化"
+    key_decisions: ["本地评估替代LangSmith", "三合一评估器", "SOCKS代理兼容"]
+    files_count: 9
+    completed_at: "2026-06-03"
+  - task: "RAGAS专业评估框架集成"
+    prd_summary: "R1:100QA测试集 R2:RAGAS四维评估 R3:评估报告 R4:检索率分析优化"
+    key_decisions: ["RAGAS框架", "LangchainLLMWrapper", "max_workers=1限流防护"]
     files_count: 4
-    completed_at: "2026-06-01"
-  - task: "Agent持久化迁移SQLite+Checkpointer"
-    prd_summary: "R1:SQLite持久化 R2:LangGraph checkpointer R3:安全审查修复"
-    key_decisions: ["AsyncSqliteSaver", "persistence模块化", "路径穿越防护"]
-    files_count: 11
-    completed_at: "2026-05-31"
+    completed_at: "2026-06-04"
 global_architecture: []  # ≤5条
 
 # 当前任务（重置时归档后清空）
 current_phase: P5  # P0-p5
-task_description: "MinerU PDF解析集成"  # ≤30字
-started_at: "2026-06-01"
-last_updated: "2026-06-03 11:55"
+task_description: "RAGAS专业评估框架集成"  # ≤30字
+started_at: "2026-06-03"
+last_updated: "2026-06-04 22:30"
 requirements_clarification:
 prd_file: ""
 architecture_decisions:  # ≤5条
@@ -37,30 +37,14 @@ architecture_decisions:  # ≤5条
   - "SSE 双事件流: reasoning_content + content 分别推送，前端分区域渲染"
   - "MinerU PDF解析: Gitee下载本地运行，控制显存<2GB"
   - "LangGraph astream双模式流式: updates(sources)+messages(tokens), ChatOpenAI统一LLM调用"
-modified_files: [".claude/project-state.md", ".claude/prd.md", ".claude/prd-mineru-integration.md",
-  "Makefile", "pyproject.toml", ".gitignore",
-  "backend/requirements.txt", "backend/env.example", "backend/app/config.py",
-  "backend/app/__init__.py", "backend/app/models/kb.py", "backend/app/models/document.py", "backend/app/models/conversation.py",
-  "backend/app/document/__init__.py", "backend/app/document/parser.py", "backend/app/document/chunker.py", "backend/app/document/embedder.py",
-  "backend/app/retrieval/__init__.py", "backend/app/retrieval/dense.py", "backend/app/retrieval/sparse.py", "backend/app/retrieval/hybrid.py", "backend/app/retrieval/reranker.py",
-  "backend/app/agent/__init__.py", "backend/app/agent/state.py", "backend/app/agent/graph.py",
-  "backend/app/agent/nodes/__init__.py", "backend/app/agent/nodes/document_node.py", "backend/app/agent/nodes/retrieval_node.py", "backend/app/agent/nodes/qa_node.py",
-  "backend/app/persistence/__init__.py", "backend/app/persistence/database.py", "backend/app/persistence/kb_repo.py",
-  "backend/app/persistence/conv_repo.py", "backend/app/persistence/message_repo.py",
-  "backend/app/api/__init__.py", "backend/app/api/knowledge_base.py", "backend/app/api/document.py", "backend/app/api/conversation.py", "backend/app/api/chat.py",
-  "backend/app/main.py",
-  "frontend/package.json", "frontend/vite.config.ts", "frontend/tsconfig.json", "frontend/index.html",
-  "frontend/src/main.ts", "frontend/src/App.vue", "frontend/src/types/index.ts", "frontend/src/api/index.ts",
-  "frontend/src/composables/useKb.ts", "frontend/src/composables/useConversation.ts", "frontend/src/composables/useChat.ts",
-  "frontend/src/components/Sidebar.vue", "frontend/src/components/ChatView.vue", "frontend/src/components/MessageBubble.vue",
-  "frontend/src/components/Toast.vue", "frontend/src/components/DocList.vue",
-  "frontend/src/components/ThinkingBlock.vue", "frontend/src/components/ChatInput.vue", "frontend/src/components/KbModal.vue",
-  "docker-compose.yml", "tests/cases.json",
-  "backend/tests/test_parser_mineru.py"]
+modified_files: ["scripts/rag_evaluation.py", ".claude/project-state.md",
+  "backend/app/agent/nodes/qa_node.py", "backend/app/agent/nodes/retrieval_node.py",
+  "backend/app/document/embedder.py", "backend/app/retrieval/dense.py",
+  ".claude/delivery-ragas-evaluation.md"]
 todo_items: []
 review_retry_count: 0
 phase_history: []  # ≥10条时压缩
-key_context: "MinerU集成完成+bug修复: token传递、import降级、Makefile修复, 全部测试通过"  # ≤50字
+key_context: "RAGAS评估完成: 100QA评估报告已生成"  # ≤50字
 ```
 
 **更新时机**：新任务→归档+重置 | PRD确认→写 prd.md | 阶段推进→更新 phase | 文件修改→记路径 | 架构→记决策 | 压缩前→更新全部
