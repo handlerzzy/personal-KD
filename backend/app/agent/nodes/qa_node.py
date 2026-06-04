@@ -54,19 +54,34 @@ class _ReasoningChatOpenAI(ChatOpenAI):
 # ---------------------------------------------------------------------------
 
 
+_PROXY_KEYS = (
+    "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY",
+    "http_proxy", "https_proxy", "all_proxy",
+    "SOCKS_PROXY", "socks_proxy",
+)
+
+
 def _get_llm(streaming: bool = True) -> _ReasoningChatOpenAI:
     """Create a ChatOpenAI instance targeting the LLM API endpoint.
 
     Streaming is enabled by default so that ``graph.astream(stream_mode="messages")``
     receives token-level ``AIMessageChunk`` objects from LangGraph.
     """
-    return _ReasoningChatOpenAI(
-        model=settings.llm_model,
-        api_key=settings.llm_api_key,
-        base_url=settings.llm_api_base,
-        temperature=0.7,
-        streaming=streaming,
-    )
+    import os
+
+    # 临时清除代理变量，避免 SOCKS 代理导致 ChatOpenAI 初始化失败
+    saved = {k: os.environ.pop(k) for k in _PROXY_KEYS if k in os.environ}
+    try:
+        llm = _ReasoningChatOpenAI(
+            model=settings.llm_model,
+            api_key=settings.llm_api_key,
+            base_url=settings.llm_api_base,
+            temperature=0.7,
+            streaming=streaming,
+        )
+    finally:
+        os.environ.update(saved)
+    return llm
 
 
 def _build_context(docs: list[dict]) -> str:

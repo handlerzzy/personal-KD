@@ -14,10 +14,23 @@ _sync_client: QdrantClient | None = None
 _use_memory: bool = False
 
 
+_PROXY_KEYS = (
+    "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY",
+    "http_proxy", "https_proxy", "all_proxy",
+    "SOCKS_PROXY", "socks_proxy",
+)
+
+
 def get_client() -> AsyncQdrantClient:
     global _client
     if _client is None:
-        _client = AsyncQdrantClient(url=settings.qdrant_url)
+        import os
+        # 临时清除代理变量，避免 SOCKS 代理导致 Qdrant 连接失败
+        saved = {k: os.environ.pop(k) for k in _PROXY_KEYS if k in os.environ}
+        try:
+            _client = AsyncQdrantClient(url=settings.qdrant_url)
+        finally:
+            os.environ.update(saved)
     return _client
 
 

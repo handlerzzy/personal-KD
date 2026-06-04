@@ -17,22 +17,21 @@ async def retrieval_node(state: AgentState) -> dict:
     dense_results = await dense.search(q_emb, kb_id, k=20)
 
     # 2. Sparse retrieval (BM25)
+    # 注意: BM25 搜索返回 (doc_idx, score) 元组
+    # 由于 BM25 索引不存储文本，sparse 结果仅用于提升排名
     raw_sparse = sparse.search(query, kb_id, k=20)
-    sparse_results = []
-    # Map BM25 results (id, score) to chunk data
-    # bm25x returns (internal_doc_id, score) tuples
-    # We need to reconstruct chunk info — BM25 stores by text order
-    # For simplicity, we create chunk_id from index
-    for idx, (doc_idx, score) in enumerate(raw_sparse):
-        sparse_results.append({
-            "chunk_id": f"bm25_{doc_idx}",
+    sparse_results = [
+        {
+            "chunk_id": f"bm25_{idx}",
             "text": "",
             "score": score,
             "doc_id": "",
             "kb_id": kb_id,
-        })
+        }
+        for idx, score in raw_sparse
+    ]
 
-    # 3. RRF Fusion
+    # 3. RRF Fusion - dense + sparse 融合
     fused = hybrid.rrf_fusion(dense_results, sparse_results, top_n=20)
 
     # 4. Rerank with CrossEncoder

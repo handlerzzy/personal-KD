@@ -1,59 +1,32 @@
-# PRD - 知识库问答系统
+# PRD - RAG 系统 LangSmith 评估
 
 ## 需求
 
 | ID | 需求 | 验收标准 |
 |----|------|---------|
-| R1 | 多知识库管理(CRUD) | 建/删/改/查命名知识库，数据隔离 |
-| R2 | 文档上传与解析 | 上传 PDF(MinerU解析)→TXT/MD(LangChain分块)，持久化 |
-| R3 | 混合检索 | Dense(Qdrant) + BM25(bm25x) → RRF → Jina Reranker v3 精排 |
-| R4 | 流式问答输出 | SSE 逐 token 推送，逐字显示回答 |
-| R5 | 思考过程展示 | 消费 `reasoning_content`，前端可折叠展示 |
-| R6 | 对话管理(知识库内) | 每个知识库支持多对话，可新建/切换/删除 |
-| R7 | Agent 评估 | LangSmith + CLI 脚本，正确性/有据性/检索相关性 |
-| R8 | 前端界面 | 左侧对话历史 + 右侧全高对话框(类似DeepSeek) |
+| R1 | 构建测试数据集 | 5 篇 PDF 上传到测试 KB，25 个 QA 对导入 LangSmith |
+| R2 | 实现 RAG 评估管道 | 支持 Correctness、Groundedness、Retrieval Relevance 三个维度 |
+| R3 | 生成评估报告 | 报告包含各维度分数、通过率、失败案例分析 |
+| R4 | 检索率优化（条件触发） | 若 Retrieval Relevance < 90%，分析瓶颈并给出优化方案 |
 
 ## 技术栈
 
-- FastAPI + LangChain + LangGraph
-- MinerU(Gitee, PDF解析) + Qdrant(Docker) + bm25x(Rust独立索引)
-- Jina Reranker v3(魔塔本地) + 智谱 Embedding-3(512维) + mimo-v2.5
-- Vue 3 + Vite + TypeScript
-- LangSmith + CLI 评估
+- LangSmith (evaluation SDK)
+- FastAPI + LangGraph (现有后端)
+- Qdrant (向量检索)
+- ZhipuAI (embedding)
+- Jina Reranker v3 (重排序)
 
-## 非功能
+## 非功能需求
 
-- 检索: 端到端<3s(RRF+CrossEncoder)
-- 知识库隔离: Qdrant collection + bm25x独立目录
-- 流式: SSE, 首 token <500ms
-- 部署: 混合模式(Qdrant Docker, 其余手动)
-- 资源: 16GB RAM + 6GB VRAM，Reranker/LLM 需控制显存
+- 评估脚本可重复执行
+- 结果持久化到本地文件
+- 评估过程不影响生产环境
 
-## UI设计
+## 评估维度
 
-```yaml
-ui_design:
-  style: "AI-Native UI / Exaggerated Minimalism"
-  colors: "AI Purple(#6366F1) + Slate灰阶中性色"
-  fonts: {heading: "Fira Code", body: "Fira Sans"}
-  components: "自建Vue3组件"
-  prototype: "/tmp/prototype-kb-agent.html"
-  responsive: [375px, 768px, 1440px]
-```
-
-## 架构概览
-
-```
-[Vue3 Frontend] ↔ SSE ↔ [FastAPI] ↔ [LangGraph Agent]
-  ┌──────────┐              ├── KnowledgeBase API
-  │ 对话列表  │              ├── Document API (MinerU)
-  │ (知识库内)│              ├── Conversation API
-  │          │              └── Chat API (SSE stream)
-  │ 对话框   │                    │
-  │ (流式渲染)│    ┌───────────────┼───────────────┐
-  │          │    ▼               ▼               ▼
-  │ 思考过程 │ Qdrant         bm25x          Jina Reranker
-  │ (折叠)   │ (Docker)   (独立目录/知识库)   v3(本地模型)
-  └──────────┘
-               Embedding-3 API ← 智谱 → LLM: mimo-v2.5 API
-```
+| 维度 | 比较对象 | 需要参考答案？ | 衡量什么 |
+|------|---------|--------------|---------|
+| Correctness | 生成答案 vs 标准答案 | 需要 | 答案是否事实正确 |
+| Groundedness | 生成答案 vs 检索文档 | 不需要 | 答案是否有依据 |
+| Retrieval Relevance | 检索文档 vs 用户问题 | 不需要 | 检索结果是否相关 |
