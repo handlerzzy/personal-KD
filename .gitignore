@@ -25,8 +25,8 @@ dist/
 # Data
 data/
 
-# Models
-models/
+# Models (project root only — not backend/app/models/)
+/models/
 
 # OS
 .DS_Store
