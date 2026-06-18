@@ -1,7 +1,9 @@
 from __future__ import annotations
-from pydantic import BaseModel
+
 from datetime import UTC, datetime
 from uuid import uuid4
+
+from pydantic import BaseModel
 
 
 class Conversation(BaseModel):
