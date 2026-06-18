@@ -47,6 +47,7 @@ class MessageRepository:
 
         # Update conversation message count and timestamp
         from app.persistence.conv_repo import ConvRepository
+
         await ConvRepository.update_message_count(conversation_id)
 
         return {

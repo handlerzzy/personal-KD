@@ -97,7 +97,7 @@ function close() {
           <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
         </svg>
         <p v-if="!uploadFileName">
-点击选择文件 或 拖拽到此处
+点击选择文件
 </p>
         <p v-else style="color:#6366F1;">
 已选择: {{ uploadFileName }}

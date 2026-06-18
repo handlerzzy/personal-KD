@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from langchain_community.embeddings import ZhipuAIEmbeddings
@@ -10,51 +11,52 @@ logger = logging.getLogger(__name__)
 
 _embedder: ZhipuAIEmbeddings | None = None
 
-
-_PROXY_KEYS = (
-    "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY",
-    "http_proxy", "https_proxy", "all_proxy",
-    "SOCKS_PROXY", "socks_proxy",
-)
+# Limit concurrent embedding API requests to avoid rate limiting
+_SEMAPHORE = asyncio.Semaphore(5)
 
 
 def get_embedder() -> ZhipuAIEmbeddings:
     global _embedder
     if _embedder is None:
-        # 临时清除代理变量，避免智谱 SDK 不支持 SOCKS 代理
-        import os
-        saved = {k: os.environ.pop(k) for k in _PROXY_KEYS if k in os.environ}
-        try:
-            _embedder = ZhipuAIEmbeddings(
-                model=settings.embedding_model,
-                dimensions=settings.embedding_dimensions,
-                api_key=settings.zhipu_api_key,
-            )
-        finally:
-            os.environ.update(saved)
+        _embedder = ZhipuAIEmbeddings(
+            model=settings.embedding_model,
+            dimensions=settings.embedding_dimensions,
+            api_key=settings.zhipu_api_key,
+        )
     return _embedder
 
 
 async def embed_texts(texts: list[str]) -> list[list[float]]:
-    """Embed multiple texts in batches of 64 (ZhipuAI limit)."""
+    """Embed multiple texts in parallel batches of 64 (ZhipuAI limit).
+
+    Batches are processed concurrently for faster embedding during
+    document upload. Each batch runs in a thread to avoid blocking.
+    Concurrency is limited by a module-level Semaphore (max 5).
+    """
     try:
         embedder = get_embedder()
-        import asyncio
         batch_size = 64
+
+        # Split into batches
+        batches = [texts[i : i + batch_size] for i in range(0, len(texts), batch_size)]
+
+        async def _embed_batch(batch: list[str]) -> list[list[float]]:
+            async with _SEMAPHORE:
+                return await asyncio.to_thread(embedder.embed_documents, batch)
+
+        # Run all batches in parallel (semaphore limits concurrency)
+        results = await asyncio.gather(*[_embed_batch(b) for b in batches])
+
         all_embeddings = []
-        for i in range(0, len(texts), batch_size):
-            batch = texts[i:i + batch_size]
-            result = await asyncio.to_thread(embedder.embed_documents, batch)
-            all_embeddings.extend(result)
+        for batch_result in results:
+            all_embeddings.extend(batch_result)
         return all_embeddings
     except Exception:
         logger.exception("Embedding 失败: count=%d", len(texts))
         raise
 
 
-
 async def embed_query(text: str) -> list[float]:
     """Embed a single query text."""
     embedder = get_embedder()
-    import asyncio
     return await asyncio.to_thread(embedder.embed_query, text)

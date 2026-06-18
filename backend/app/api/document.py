@@ -4,10 +4,12 @@ import json
 import logging
 import re
 from pathlib import Path
+from typing import Annotated
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from app.config import KB_DIR, UPLOAD_DIR
+from app.deps import get_user_kb
 from app.document.chunker import split_text
 from app.document.embedder import embed_texts
 from app.document.parser import parse_document
@@ -63,17 +65,21 @@ def _delete_doc_file(doc: Document) -> None:
 
 
 @router.get("")
-async def list_documents(kb_id: str):
-    _kb_path(kb_id)
-    return _load_docs(kb_id)
+async def list_documents(
+    kb: Annotated[dict, Depends(get_user_kb)],
+):
+    """List documents (must belong to current user)."""
+    _kb_path(kb["id"])
+    return _load_docs(kb["id"])
 
 
 @router.post("", status_code=201)
 async def upload_document(
-    kb_id: str,
+    kb: Annotated[dict, Depends(get_user_kb)],
     file: UploadFile = File(...),
 ):
-    _kb_path(kb_id)
+    """Upload document (must belong to current user)."""
+    _kb_path(kb["id"])
 
     # Validate file type
     original_name = file.filename or "unknown"
@@ -91,7 +97,7 @@ async def upload_document(
     safe_name = Path(original_name).name
 
     # Save uploaded file
-    upload_dir = UPLOAD_DIR / kb_id
+    upload_dir = UPLOAD_DIR / kb["id"]
     upload_dir.mkdir(parents=True, exist_ok=True)
     file_path = upload_dir / safe_name
     with open(file_path, "wb") as f:
@@ -99,7 +105,7 @@ async def upload_document(
 
     # Create doc record
     doc = Document(
-        kb_id=kb_id,
+        kb_id=kb["id"],
         filename=safe_name,
         file_type=file_type,
         file_size=len(content),
@@ -109,7 +115,7 @@ async def upload_document(
         # Parse document
         text = await parse_document(str(file_path), file_type)
         # Chunk
-        chunks = split_text(text, kb_id, doc.id)
+        chunks = split_text(text, kb["id"], doc.id)
         doc.chunk_count = len(chunks)
 
         if chunks:
@@ -117,43 +123,50 @@ async def upload_document(
             texts = [c["text"] for c in chunks]
             embeddings = await embed_texts(texts)
             # Index to Qdrant
-            await dense.upsert_chunks(kb_id, chunks, embeddings)
-            # Index to BM25
-            sparse.add_documents(kb_id, texts)
+            await dense.upsert_chunks(kb["id"], chunks, embeddings)
+            # Index to BM25 (with real chunk_ids for RRF fusion)
+            chunk_ids = [c["chunk_id"] for c in chunks]
+            sparse.add_documents(kb["id"], texts, chunk_ids=chunk_ids)
 
-    except Exception as e:
-        logger.exception("文档处理失败: %s", e)
+    except Exception:
+        logger.exception("文档处理失败: filename=%s", original_name)
         # Cleanup on failure
         if file_path.exists():
             file_path.unlink()
-        raise HTTPException(500, f"文档处理失败: {str(e)}")
+        raise HTTPException(500, "文档处理失败，请检查文件格式后重试")
 
     # Save doc metadata (still using JSON for document metadata)
     _save_doc(doc)
 
     # Update KB doc count in SQLite
-    await KbRepository.update_doc_count(kb_id, delta=1)
+    await KbRepository.update_doc_count(kb["id"], delta=1)
 
     return doc
 
 
 @router.delete("/{doc_id}")
-async def delete_document(kb_id: str, doc_id: str):
-    _validate_id(kb_id, "知识库ID")
+async def delete_document(
+    doc_id: str,
+    kb: Annotated[dict, Depends(get_user_kb)],
+):
+    """Delete document (must belong to current user)."""
+    _validate_id(kb["id"], "知识库ID")
     _validate_id(doc_id, "文档ID")
-    _kb_path(kb_id)
-    docs = _load_docs(kb_id)
+
+    _kb_path(kb["id"])
+    docs = _load_docs(kb["id"])
     doc = next((d for d in docs if d.id == doc_id), None)
     if not doc:
         raise HTTPException(404, "文档不存在")
 
     # Delete from Qdrant
-    await dense.delete_document_chunks(kb_id, doc_id)
+    await dense.delete_document_chunks(kb["id"], doc_id)
 
-    # Delete from BM25 (not directly supported by bm25x, skip for now)
+    # Delete from BM25 index
+    sparse.remove_documents_by_doc_id(kb["id"], doc_id)
 
     # Delete file
-    upload_path = UPLOAD_DIR / kb_id / doc.filename
+    upload_path = UPLOAD_DIR / kb["id"] / doc.filename
     if upload_path.exists():
         upload_path.unlink()
 
@@ -161,6 +174,6 @@ async def delete_document(kb_id: str, doc_id: str):
     _delete_doc_file(doc)
 
     # Update KB doc count in SQLite
-    await KbRepository.update_doc_count(kb_id, delta=-1)
+    await KbRepository.update_doc_count(kb["id"], delta=-1)
 
     return {"ok": True}

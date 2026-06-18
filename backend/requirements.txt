@@ -4,7 +4,6 @@
 
 fastapi>=0.115.0
 uvicorn[standard]
-sse-starlette
 pydantic>=2.0
 pydantic-settings
 langchain>=0.3.0
@@ -16,12 +15,18 @@ qdrant-client>=1.13.0
 zhipuai>=2.0.0
 langchain-openai>=0.3.0
 langgraph-checkpoint-sqlite>=3.1.0
-bm25x>=0.3.0
+aiosqlite>=0.22.1
+rank_bm25>=0.2.2
+jieba>=0.42.1
 transformers>=4.45.0
 torch>=2.0.0
 sentencepiece
-modelscope>=0.3.0
 python-multipart
-aiofiles
 langchain-mineru>=0.1.0
 mineru-open-sdk>=0.2.0
+langsmith>=0.8.7
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+bcrypt>=4.0.0,<5.0.0
+email-validator>=2.0.0
+pymupdf>=1.24.0

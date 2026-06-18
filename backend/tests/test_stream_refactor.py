@@ -13,11 +13,18 @@ import asyncio
 import json
 from unittest.mock import AsyncMock, patch
 
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages import AIMessage
+
+
+async def _async_iter(items):
+    """Helper to create an async iterable from a list."""
+    for item in items:
+        yield item
 
 
 class FakeAIMessageChunk:
     """Mock AIMessageChunk that LangGraph's stream_mode="messages" would produce."""
+
     content: str = ""
     additional_kwargs: dict = {}
 
@@ -38,8 +45,17 @@ async def test_graph_streaming():
     print("  ✓ graph 编译成功")
 
     # Mock both LLM and retrieval together for both invoke and stream tests
+    # Patch _get_llm directly (not ChatOpenAI) because _get_llm returns a
+    # cached _ReasoningChatOpenAI subclass instance.
+    from app.agent.nodes.qa_node import _reasoning_llm_cache
+
+    _reasoning_llm_cache.clear()
+
     with (
-        patch("app.agent.nodes.qa_node.ChatOpenAI") as mock_llm_class,
+        patch("app.agent.nodes.qa_node._get_llm") as mock_get_llm,
+        patch(
+            "app.agent.nodes.query_classifier._get_llm",
+        ) as mock_classifier_llm,
         patch(
             "app.agent.nodes.retrieval_node.embed_query",
             new_callable=AsyncMock,
@@ -50,21 +66,30 @@ async def test_graph_streaming():
         ) as mock_dense,
         patch("app.agent.nodes.retrieval_node.sparse.search") as mock_sparse,
         patch("app.agent.nodes.retrieval_node.hybrid.rrf_fusion") as mock_rrf,
-        patch(
-            "app.retrieval.reranker.rerank", new_callable=AsyncMock
-        ) as mock_rerank,
+        patch("app.retrieval.reranker.rerank", new_callable=AsyncMock) as mock_rerank,
     ):
-
         mock_embed.return_value = [0.1] * 512
         mock_dense.return_value = []
         mock_sparse.return_value = []
         mock_rrf.return_value = []
         mock_rerank.return_value = []
 
+        # Mock classifier LLM to return a valid classification response
+        _factual_resp = (
+            '{"needs_retrieval": true, "query_type": "factual",'
+            ' "use_hyde": false, "multi_query_count": 1}'
+        )
+        mock_classifier_instance = AsyncMock()
+        mock_classifier_instance.ainvoke = AsyncMock(
+            return_value=AIMessage(content=_factual_resp)
+        )
+        mock_classifier_llm.return_value = mock_classifier_instance
+
         # --- Test ainvoke (non-streaming) ---
         mock_instance = AsyncMock()
         mock_instance.ainvoke = AsyncMock(return_value=AIMessage(content="测试回复"))
-        mock_llm_class.return_value = mock_instance
+        mock_instance.astream = lambda msgs: _async_iter([AIMessage(content="测试回复")])
+        mock_get_llm.return_value = mock_instance
 
         result = await graph.ainvoke(
             {
@@ -84,10 +109,11 @@ async def test_graph_streaming():
         print("  ✓ ainvoke 正确返回结果")
 
         # --- Test streaming ---
-        print("\n--- 测试 stream_mode=[\"updates\",\"messages\"] ---")
+        print('\n--- 测试 stream_mode=["updates","messages"] ---')
         mock_instance2 = AsyncMock()
         mock_instance2.ainvoke = AsyncMock(return_value=AIMessage(content="流式测试回复"))
-        mock_llm_class.return_value = mock_instance2
+        mock_instance2.astream = lambda msgs: _async_iter([AIMessage(content="流式测试回复")])
+        mock_get_llm.return_value = mock_instance2
 
         stream_events = []
         async for mode, data in graph.astream(
@@ -109,8 +135,7 @@ async def test_graph_streaming():
                 chunk, meta = data
                 content_preview = chunk.content[:30] if chunk.content else "(empty)"
                 print(
-                    f"  messages: content={content_preview}, "
-                    f"node={meta.get('langgraph_node', '?')}"
+                    f"  messages: content={content_preview}, node={meta.get('langgraph_node', '?')}"
                 )
 
         assert len(stream_events) > 0, "没有收到任何 stream 事件"
@@ -130,13 +155,16 @@ async def test_chat_sse_generation():
     # Simulate what stream_chat would yield
     async def fake_stream():
         # updates: retrieve completed
-        yield ("updates", {
-            "retrieve": {
-                "retrieved_docs": [
-                    {"chunk_id": "c1", "text": "测试文档内容", "score": 0.95, "doc_id": "d1"}
-                ]
-            }
-        })
+        yield (
+            "updates",
+            {
+                "retrieve": {
+                    "retrieved_docs": [
+                        {"chunk_id": "c1", "text": "测试文档内容", "score": 0.95, "doc_id": "d1"}
+                    ]
+                }
+            },
+        )
         # messages: LLM tokens - simulate reasoning
         reasoning_chunk = FakeAIMessageChunk()
         reasoning_chunk.content = ""
@@ -160,14 +188,14 @@ async def test_chat_sse_generation():
     full_answer = ""
     sources_emitted = False
 
-    from app.api.chat import _build_sources_from_docs
+    from app.utils.sources import build_sources
 
     async for mode, data in fake_stream():
         if mode == "updates":
             update_dict: dict = data
             if "retrieve" in update_dict and not sources_emitted:
                 docs = update_dict["retrieve"].get("retrieved_docs", [])
-                sources = _build_sources_from_docs(docs)
+                sources = build_sources(docs)
                 sse = f"event: sources\ndata: {json.dumps({'sources': sources})}\n\n"
                 sse_lines.append(sse)
                 sources_emitted = True
@@ -184,9 +212,7 @@ async def test_chat_sse_generation():
                 )
             if chunk.content:
                 full_answer += chunk.content
-                sse_lines.append(
-                    f"event: answer\ndata: {json.dumps({'token': chunk.content})}\n\n"
-                )
+                sse_lines.append(f"event: answer\ndata: {json.dumps({'token': chunk.content})}\n\n")
 
     sse_lines.append(
         "event: done\n"
@@ -210,32 +236,6 @@ async def test_chat_sse_generation():
     print()
 
 
-async def test_message_conversion():
-    """Test _messages_from_dicts conversion."""
-    print("=" * 60)
-    print("测试3: 消息格式转换")
-    print("=" * 60)
-
-    from app.agent.graph import _messages_from_dicts
-
-    history = [
-        {"id": "a1", "role": "user", "content": "问题1"},
-        {"id": "b1", "role": "assistant", "content": "回答1"},
-        {"id": "a2", "role": "user", "content": "问题2"},
-        {"id": "b2", "role": "assistant", "content": ""},  # 空消息应被跳过
-    ]
-
-    result = _messages_from_dicts(history)
-
-    assert len(result) == 3, f"应用 3 条有效消息，实际 {len(result)}"
-    assert isinstance(result[0], HumanMessage)
-    assert isinstance(result[1], AIMessage)
-    assert result[0].content == "问题1"
-    assert result[1].content == "回答1"
-    print(f"  ✓ 转换 {len(result)} 条消息，类型正确")
-    print()
-
-
 async def test_checkpointer_persistence():
     """Test that checkpointer actually stores state after streaming."""
     print("=" * 60)
@@ -248,8 +248,16 @@ async def test_checkpointer_persistence():
     await init_checkpointer(":memory:")
     graph = build_graph()
 
+    # Clear LLM cache to prevent stale instances
+    from app.agent.nodes.qa_node import _reasoning_llm_cache
+
+    _reasoning_llm_cache.clear()
+
     with (
-        patch("app.agent.nodes.qa_node.ChatOpenAI") as mock_llm_class,
+        patch("app.agent.nodes.qa_node._get_llm") as mock_get_llm,
+        patch(
+            "app.agent.nodes.query_classifier._get_llm",
+        ) as mock_classifier_llm,
         patch(
             "app.agent.nodes.retrieval_node.embed_query",
             new_callable=AsyncMock,
@@ -260,19 +268,29 @@ async def test_checkpointer_persistence():
         ) as mock_dense,
         patch("app.agent.nodes.retrieval_node.sparse.search") as mock_sparse,
         patch("app.agent.nodes.retrieval_node.hybrid.rrf_fusion") as mock_rrf,
-        patch(
-            "app.retrieval.reranker.rerank", new_callable=AsyncMock
-        ) as mock_rerank,
+        patch("app.retrieval.reranker.rerank", new_callable=AsyncMock) as mock_rerank,
     ):
-
         mock_embed.return_value = [0.1] * 512
         mock_dense.return_value = []
         mock_sparse.return_value = []
         mock_rrf.return_value = []
         mock_rerank.return_value = []
+
+        # Mock classifier LLM to return a valid classification response
+        _factual_resp = (
+            '{"needs_retrieval": true, "query_type": "factual",'
+            ' "use_hyde": false, "multi_query_count": 1}'
+        )
+        mock_classifier_instance = AsyncMock()
+        mock_classifier_instance.ainvoke = AsyncMock(
+            return_value=AIMessage(content=_factual_resp)
+        )
+        mock_classifier_llm.return_value = mock_classifier_instance
+
         mock_instance = AsyncMock()
         mock_instance.ainvoke = AsyncMock(return_value=AIMessage(content="checkpoint测试"))
-        mock_llm_class.return_value = mock_instance
+        mock_instance.astream = lambda msgs: _async_iter([AIMessage(content="checkpoint测试")])
+        mock_get_llm.return_value = mock_instance
 
         thread_id = "persist-test-1"
         events = []
@@ -311,7 +329,6 @@ async def test_checkpointer_persistence():
 async def main():
     await test_graph_streaming()
     await test_chat_sse_generation()
-    await test_message_conversion()
     await test_checkpointer_persistence()
     print("=" * 60)
     print("所有测试完成！")
