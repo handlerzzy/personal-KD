@@ -28,7 +28,6 @@ function toggle() {
     </button>
     <div class="thinking-body" :class="{ open: expanded }">
       {{ reasoning }}
-      <span v-if="isStreaming" class="stream-cursor">|</span>
     </div>
   </div>
 </template>
@@ -67,9 +66,4 @@ function toggle() {
   white-space: pre-wrap;
 }
 .thinking-body.open { display: block; }
-.stream-cursor {
-  animation: blink 0.8s step-end infinite;
-  color: #6366F1;
-}
-@keyframes blink { 50% { opacity: 0; } }
 </style>

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import logging
 
 from qdrant_client import AsyncQdrantClient, QdrantClient, models
@@ -14,23 +15,15 @@ _sync_client: QdrantClient | None = None
 _use_memory: bool = False
 
 
-_PROXY_KEYS = (
-    "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY",
-    "http_proxy", "https_proxy", "all_proxy",
-    "SOCKS_PROXY", "socks_proxy",
-)
+def _stable_id(chunk_id: str) -> int:
+    """Generate a stable integer ID from chunk_id string using MD5."""
+    return int(hashlib.md5(chunk_id.encode()).hexdigest()[:16], 16)
 
 
 def get_client() -> AsyncQdrantClient:
     global _client
     if _client is None:
-        import os
-        # 临时清除代理变量，避免 SOCKS 代理导致 Qdrant 连接失败
-        saved = {k: os.environ.pop(k) for k in _PROXY_KEYS if k in os.environ}
-        try:
-            _client = AsyncQdrantClient(url=settings.qdrant_url)
-        finally:
-            os.environ.update(saved)
+        _client = AsyncQdrantClient(url=settings.qdrant_url)
     return _client
 
 
@@ -59,6 +52,10 @@ def _collection_name(kb_id: str) -> str:
 async def create_collection(kb_id: str) -> bool:
     global _use_memory
     name = _collection_name(kb_id)
+    vectors_config = models.VectorParams(
+        size=settings.embedding_dimensions,
+        distance=models.Distance.COSINE,
+    )
 
     # Try server first
     if not _use_memory:
@@ -66,32 +63,38 @@ async def create_collection(kb_id: str) -> bool:
             client = get_client()
             exists = await client.collection_exists(name)
             if exists:
+                logger.info("Collection already exists: %s", name)
                 return True
-            return await client.create_collection(
+            result = await client.create_collection(
                 collection_name=name,
-                vectors_config=models.VectorParams(
-                    size=settings.embedding_dimensions,
-                    distance=models.Distance.COSINE,
-                ),
+                vectors_config=vectors_config,
             )
-        except Exception:
-            logger.warning("Qdrant server not available, switching to in-memory mode")
+            logger.info("Created collection on server: %s", name)
+            return result
+        except Exception as e:
+            logger.warning("Qdrant server not available (%s), switching to in-memory mode", e)
             _use_memory = True
 
     # In-memory mode
-    sync_client = get_sync_client()
     try:
-        sync_client.create_collection(
+        sync_client = get_sync_client()
+        # Check if already exists
+        try:
+            sync_client.get_collection(name)
+            logger.info("In-memory collection already exists: %s", name)
+            return True
+        except Exception:
+            pass
+        await asyncio.to_thread(
+            sync_client.create_collection,
             collection_name=name,
-            vectors_config=models.VectorParams(
-                size=settings.embedding_dimensions,
-                distance=models.Distance.COSINE,
-            ),
+            vectors_config=vectors_config,
         )
+        logger.info("Created in-memory collection: %s", name)
         return True
-    except Exception:
-        # Collection might already exist
-        return True
+    except Exception as e:
+        logger.exception("Failed to create collection %s: %s", name, e)
+        return False
 
 
 async def delete_collection(kb_id: str) -> bool:
@@ -109,11 +112,10 @@ async def delete_collection(kb_id: str) -> bool:
             _use_memory = True
 
     # In-memory mode
-    sync_client = get_sync_client()
     try:
-        sync_client.delete_collection(name)
+        await asyncio.to_thread(get_sync_client().delete_collection, name)
     except Exception:
-        pass
+        logger.debug("In-memory collection delete failed (may not exist): %s", name, exc_info=True)
     return True
 
 
@@ -127,34 +129,50 @@ async def upsert_chunks(
     name = _collection_name(kb_id)
     points = []
     for i, (chunk, emb) in enumerate(zip(chunks, embeddings)):
-        points.append(models.PointStruct(
-            id=hash(chunk["chunk_id"]) % (2**63),
-            vector=emb,
-            payload={
-                "chunk_id": chunk["chunk_id"],
-                "text": chunk["text"],
-                "kb_id": chunk["metadata"]["kb_id"],
-                "doc_id": chunk["metadata"]["doc_id"],
-                "chunk_index": chunk["metadata"]["chunk_index"],
-            },
-        ))
+        points.append(
+            models.PointStruct(
+                id=_stable_id(chunk["chunk_id"]),
+                vector=emb,
+                payload={
+                    "chunk_id": chunk["chunk_id"],
+                    "text": chunk["text"],
+                    "kb_id": chunk["metadata"]["kb_id"],
+                    "doc_id": chunk["metadata"]["doc_id"],
+                    "chunk_index": chunk["metadata"]["chunk_index"],
+                },
+            )
+        )
 
     # Upsert in batches of 100
     batch_size = 100
     for i in range(0, len(points), batch_size):
-        batch = points[i:i + batch_size]
+        batch = points[i : i + batch_size]
         if not _use_memory:
             try:
                 client = get_client()
                 await client.upsert(name, points=batch)
-            except Exception:
-                logger.warning("Qdrant server not available, switching to in-memory mode")
+            except Exception as e:
+                logger.warning("Qdrant server upsert failed (%s), switching to in-memory mode", e)
                 _use_memory = True
+                # Ensure collection exists in memory
                 sync_client = get_sync_client()
-                sync_client.upsert(name, points=batch)
+                try:
+                    sync_client.get_collection(name)
+                except Exception:
+                    logger.info("Creating missing in-memory collection: %s", name)
+                    from qdrant_client.models import Distance, VectorParams
+
+                    await asyncio.to_thread(
+                        sync_client.create_collection,
+                        collection_name=name,
+                        vectors_config=VectorParams(
+                            size=settings.embedding_dimensions,
+                            distance=Distance.COSINE,
+                        ),
+                    )
+                await asyncio.to_thread(sync_client.upsert, name, points=batch)
         else:
-            sync_client = get_sync_client()
-            sync_client.upsert(name, points=batch)
+            await asyncio.to_thread(get_sync_client().upsert, name, points=batch)
 
 
 async def search(
@@ -193,9 +211,9 @@ async def search(
             _use_memory = True
 
     # In-memory mode
-    sync_client = get_sync_client()
     try:
-        result = sync_client.query_points(
+        result = await asyncio.to_thread(
+            get_sync_client().query_points,
             collection_name=name,
             query=query_embedding,
             limit=k,
@@ -228,35 +246,52 @@ async def delete_document_chunks(kb_id: str, doc_id: str) -> None:
             if not exists:
                 return
             from qdrant_client.models import FieldCondition, Filter, MatchValue
-            records, _ = await client.scroll(
-                collection_name=name,
-                scroll_filter=Filter(
-                    must=[FieldCondition(key="doc_id", match=MatchValue(value=doc_id))]
-                ),
-                limit=10000,
-                with_payload=False,
+
+            scroll_filter = Filter(
+                must=[FieldCondition(key="doc_id", match=MatchValue(value=doc_id))]
             )
-            if records:
-                point_ids = [p.id for p in records]
-                await client.delete(name, points_selector=models.PointIdsList(point_ids))
+            offset = None
+            while True:
+                records, offset = await client.scroll(
+                    collection_name=name,
+                    scroll_filter=scroll_filter,
+                    limit=10000,
+                    offset=offset,
+                    with_payload=False,
+                )
+                if records:
+                    point_ids = [p.id for p in records]
+                    await client.delete(name, points_selector=models.PointIdsList(point_ids))
+                if offset is None:
+                    break
             return
         except Exception:
             _use_memory = True
 
     # In-memory mode
-    sync_client = get_sync_client()
     try:
         from qdrant_client.models import FieldCondition, Filter, MatchValue
-        records, _ = sync_client.scroll(
-            collection_name=name,
-            scroll_filter=Filter(
-                must=[FieldCondition(key="doc_id", match=MatchValue(value=doc_id))]
-            ),
-            limit=10000,
-            with_payload=False,
-        )
-        if records:
-            point_ids = [p.id for p in records]
-            sync_client.delete(name, points_selector=models.PointIdsList(point_ids))
+
+        scroll_filter = Filter(must=[FieldCondition(key="doc_id", match=MatchValue(value=doc_id))])
+        offset = None
+        while True:
+            results, offset = await asyncio.to_thread(
+                get_sync_client().scroll,
+                collection_name=name,
+                scroll_filter=scroll_filter,
+                limit=10000,
+                offset=offset,
+                with_payload=False,
+            )
+            if not results:
+                break
+            point_ids = [p.id for p in results]
+            await asyncio.to_thread(
+                get_sync_client().delete,
+                name,
+                points_selector=models.PointIdsList(point_ids),
+            )
+            if offset is None:
+                break
     except Exception as e:
         logger.warning("In-memory delete failed: %s", e)

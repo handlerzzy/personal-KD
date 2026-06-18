@@ -8,11 +8,15 @@ venv/
 # Node
 node_modules/
 dist/
+# Lock files (keep package-lock.json and uv.lock for reproducible builds)
 *.lock
+!package-lock.json
+!uv.lock
 
 # IDE
 .vscode/
 .idea/
+.idea
 
 # Environment
 .env
@@ -27,3 +31,19 @@ models/
 # OS
 .DS_Store
 Thumbs.db
+
+# Claude
+.claude/reviews/
+.claude/commands
+.claude/settings.local.json
+
+# Sandbox artifacts (character device files)
+.bash_profile
+.bashrc
+.zshrc
+.zprofile
+.profile
+.gitconfig
+.gitmodules
+.ripgreprc
+.mcp.json

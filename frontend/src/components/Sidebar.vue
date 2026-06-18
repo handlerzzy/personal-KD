@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import type { KnowledgeBase, Conversation } from '../types'
 import DocList from './DocList.vue'
 
-defineProps<{
+const props = defineProps<{
   kbs: KnowledgeBase[]
   currentKb: KnowledgeBase | null
   conversations: Conversation[]
@@ -19,23 +20,103 @@ const emit = defineEmits<{
   selectConv: [conv: Conversation]
   createConv: []
   deleteConv: [id: string]
+  renameConv: [id: string, title: string]
+  togglePin: [id: string]
   deleteDoc: [docId: string]
   toggleSidebar: []
 }>()
 
 const kbDropdownOpen = defineModel<boolean>('kbDropdownOpen', { default: false })
 
-function formatTime(dateStr: string) {
-  const d = new Date(dateStr)
+// Context menu state
+const contextMenu = ref({ show: false, x: 0, y: 0, convId: '', convTitle: '' })
+const renamingConvId = ref<string | null>(null)
+const renameValue = ref('')
+
+function showContextMenu(e: MouseEvent, conv: Conversation) {
+  e.preventDefault()
+  contextMenu.value = { show: true, x: e.clientX, y: e.clientY, convId: conv.id, convTitle: conv.title }
+}
+
+function hideContextMenu() {
+  contextMenu.value.show = false
+}
+
+function startRename() {
+  renamingConvId.value = contextMenu.value.convId
+  renameValue.value = contextMenu.value.convTitle
+  hideContextMenu()
+}
+
+function confirmRename() {
+  if (renamingConvId.value && renameValue.value.trim()) {
+    emit('renameConv', renamingConvId.value, renameValue.value.trim())
+  }
+  renamingConvId.value = null
+}
+
+function cancelRename() {
+  renamingConvId.value = null
+}
+
+function handlePin() {
+  emit('togglePin', contextMenu.value.convId)
+  hideContextMenu()
+}
+
+function handleDelete() {
+  emit('deleteConv', contextMenu.value.convId)
+  hideContextMenu()
+}
+
+function groupConversations(convs: Conversation[]) {
   const now = new Date()
-  const diff = now.getTime() - d.getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 60) return `${mins}分钟前`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}小时前`
-  const days = Math.floor(hours / 24)
-  if (days < 7) return `${days}天前`
-  return d.toLocaleDateString('zh-CN')
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+  const sevenDaysAgo = new Date(today)
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+  const thirtyDaysAgo = new Date(today)
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+  const groups: { label: string; items: Conversation[] }[] = []
+  const pinned: Conversation[] = []
+  const todayList: Conversation[] = []
+  const yesterdayList: Conversation[] = []
+  const weekList: Conversation[] = []
+  const monthList: Conversation[] = []
+  const olderMap = new Map<string, Conversation[]>()
+
+  for (const conv of convs) {
+    if (conv.is_pinned) {
+      pinned.push(conv)
+      continue
+    }
+    const d = new Date(conv.updated_at)
+    if (d >= today) {
+      todayList.push(conv)
+    } else if (d >= yesterday) {
+      yesterdayList.push(conv)
+    } else if (d >= sevenDaysAgo) {
+      weekList.push(conv)
+    } else if (d >= thirtyDaysAgo) {
+      monthList.push(conv)
+    } else {
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      if (!olderMap.has(key)) olderMap.set(key, [])
+      olderMap.get(key)!.push(conv)
+    }
+  }
+
+  if (pinned.length) groups.push({ label: '置顶', items: pinned })
+  if (todayList.length) groups.push({ label: '今天', items: todayList })
+  if (yesterdayList.length) groups.push({ label: '昨天', items: yesterdayList })
+  if (weekList.length) groups.push({ label: '7天内', items: weekList })
+  if (monthList.length) groups.push({ label: '30天内', items: monthList })
+  for (const [key, items] of olderMap) {
+    groups.push({ label: key, items })
+  }
+  return groups
 }
 </script>
 
@@ -107,36 +188,82 @@ function formatTime(dateStr: string) {
       </div>
 
       <div class="conv-list">
-        <div
-          v-for="conv in conversations" :key="conv.id"
-          class="conv-item"
-          :class="{ active: currentConv?.id === conv.id }"
-          @click="emit('selectConv', conv)"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-          </svg>
-          <div class="conv-info">
-            <div class="conv-title">
-{{ conv.title }}
-</div>
-            <div class="conv-meta">
-{{ formatTime(conv.updated_at) }} · {{ conv.message_count }}条消息
-</div>
+        <template v-if="conversations.length > 0">
+          <div v-for="group in groupConversations(conversations)" :key="group.label" class="conv-group">
+            <div class="conv-group-label">{{ group.label }}</div>
+            <div
+              v-for="conv in group.items" :key="conv.id"
+              class="conv-item"
+              :class="{ active: currentConv?.id === conv.id }"
+              @click="emit('selectConv', conv)"
+              @contextmenu="showContextMenu($event, conv)"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              <div class="conv-info">
+                <div class="conv-title">
+                  <template v-if="renamingConvId === conv.id">
+                    <input
+                      v-model="renameValue"
+                      class="rename-input"
+                      @keyup.enter="confirmRename"
+                      @keyup.escape="cancelRename"
+                      @blur="confirmRename"
+                      @click.stop
+                    />
+                  </template>
+                  <template v-else>
+                    {{ conv.title }}
+                  </template>
+                </div>
+              </div>
+              <button class="more-btn" @click.stop="showContextMenu($event, conv)" aria-label="更多操作">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>
+                </svg>
+              </button>
+            </div>
           </div>
-          <button class="del-btn" @click.stop="emit('deleteConv', conv.id)" aria-label="删除对话">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3 6 5 6 21 6"/>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-            </svg>
-          </button>
-        </div>
+        </template>
 
         <div v-if="conversations.length === 0" class="conv-empty">
           暂无对话，新建一个开始吧
         </div>
       </div>
     </div>
+
+    <!-- Context Menu -->
+    <Teleport to="body">
+      <div
+        v-if="contextMenu.show"
+        class="context-menu"
+        :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
+      >
+        <button class="context-menu-item" @click="startRename">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+          </svg>
+          重命名
+        </button>
+        <button class="context-menu-item" @click="handlePin">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+            <path d="M2 17l10 5 10-5"/>
+          </svg>
+          置顶
+        </button>
+        <div class="context-menu-divider"></div>
+        <button class="context-menu-item danger" @click="handleDelete">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+          删除
+        </button>
+      </div>
+      <div v-if="contextMenu.show" class="context-menu-overlay" @click="hideContextMenu"></div>
+    </Teleport>
   </aside>
 </template>
 
@@ -228,6 +355,12 @@ function formatTime(dateStr: string) {
 .conv-list::-webkit-scrollbar { width: 4px; }
 .conv-list::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 2px; }
 
+.conv-group { margin-bottom: 8px; }
+.conv-group-label {
+  font-size: 11px; font-weight: 500; color: #94A3B8;
+  padding: 4px 12px; text-transform: uppercase;
+}
+
 .conv-item {
   padding: 10px 12px; margin-bottom: 2px;
   border-radius: 8px; cursor: pointer;
@@ -240,16 +373,44 @@ function formatTime(dateStr: string) {
 .conv-info { flex: 1; min-width: 0; }
 .conv-title { font-size: 13px; font-weight: 500; color: #1E293B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .conv-meta { font-size: 11px; color: #94A3B8; margin-top: 2px; }
-.del-btn {
+.more-btn {
   opacity: 0; transition: opacity 200ms ease;
   background: none; border: none; cursor: pointer;
   color: #94A3B8; padding: 2px;
 }
-.conv-item:hover .del-btn { opacity: 1; }
-.del-btn:hover { color: #EF4444; }
-.del-btn svg { width: 14px; height: 14px; }
+.conv-item:hover .more-btn { opacity: 1; }
+.more-btn:hover { color: #1E293B; }
+.more-btn svg { width: 14px; height: 14px; }
+.pin-icon { font-size: 10px; margin-right: 4px; }
+.rename-input {
+  width: 100%; border: 1px solid #6366F1; border-radius: 4px;
+  padding: 2px 4px; font-size: 13px; font-family: inherit;
+  outline: none; background: #fff;
+}
 .conv-empty {
   text-align: center; color: #94A3B8;
   font-size: 13px; padding: 32px 16px;
+}
+
+/* Context Menu */
+.context-menu {
+  position: fixed; z-index: 100;
+  background: #fff; border: 1px solid #E2E8F0;
+  border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  padding: 4px; min-width: 120px;
+}
+.context-menu-item {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; padding: 8px 12px; border: none;
+  background: none; font-size: 13px; color: #1E293B;
+  cursor: pointer; border-radius: 4px; font-family: inherit;
+  transition: background 150ms ease;
+}
+.context-menu-item:hover { background: #F1F5F9; }
+.context-menu-item.danger { color: #EF4444; }
+.context-menu-item.danger:hover { background: #FEF2F2; }
+.context-menu-divider { height: 1px; background: #E2E8F0; margin: 4px 0; }
+.context-menu-overlay {
+  position: fixed; inset: 0; z-index: 99;
 }
 </style>

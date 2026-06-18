@@ -1,4 +1,5 @@
 """Tests for retrieval module (R3)."""
+
 from app.retrieval.hybrid import rrf_fusion
 
 
@@ -48,8 +49,13 @@ class TestRRFFusion:
     def test_top_n_limit(self):
         """RRF should respect top_n limit."""
         dense = [
-            {"chunk_id": f"d{i}", "text": f"doc {i}", "score": 1.0 - i * 0.1,
-             "doc_id": "", "kb_id": ""}
+            {
+                "chunk_id": f"d{i}",
+                "text": f"doc {i}",
+                "score": 1.0 - i * 0.1,
+                "doc_id": "",
+                "kb_id": "",
+            }
             for i in range(20)
         ]
         result = rrf_fusion(dense, [], top_n=5)

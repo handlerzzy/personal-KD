@@ -21,6 +21,7 @@ def get_model():
         import logging
 
         from transformers import AutoModel
+
         logger = logging.getLogger(__name__)
         logger.info("Loading Jina Reranker v3 from %s", settings.reranker_model_path)
         try:
@@ -50,11 +51,13 @@ async def rerank(
     model = get_model()
     if model is None:
         import logging
+
         logging.getLogger(__name__).warning("Reranker 不可用，跳过重排序")
         return documents[:top_n]
     texts = [doc["text"] for doc in documents]
 
     import asyncio
+
     loop = asyncio.get_event_loop()
 
     def _run_rerank():
@@ -65,6 +68,7 @@ async def rerank(
         reranked = await loop.run_in_executor(None, _run_rerank)
     except Exception as e:
         import logging
+
         logging.getLogger(__name__).warning("Reranker failed: %s, falling back to input order", e)
         return documents[:top_n]
 

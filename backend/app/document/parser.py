@@ -16,7 +16,6 @@ async def parse_document(file_path: str, file_type: str) -> str:
     """
     if file_type == "pdf":
         parser_type = _assess_pdf_complexity(file_path)
-        logger.info("PDF 解析器选择: %s (文件: %s)", parser_type, file_path)
 
         if parser_type == "pymupdf":
             return await _parse_pdf(file_path)
@@ -48,8 +47,8 @@ def _assess_pdf_complexity(file_path: str) -> str:
         logger.warning("PyMuPDF not installed, falling back to MinerU flash")
         return "flash"
 
+    doc = pymupdf.open(file_path)
     try:
-        doc = pymupdf.open(file_path)
         total_pages = len(doc)
 
         # Sample first 3 pages for analysis
@@ -72,8 +71,6 @@ def _assess_pdf_complexity(file_path: str) -> str:
             blocks = page.get_text("blocks")
             if len(blocks) > 15:  # Heuristic for complex layout
                 has_complex_layout = True
-
-        doc.close()
 
         avg_density = sum(text_densities) / len(text_densities) if text_densities else 0
         empty_pages = sum(1 for d in text_densities if d < 0.001)
@@ -98,22 +95,24 @@ def _assess_pdf_complexity(file_path: str) -> str:
     except Exception as e:
         logger.warning("PDF 分析失败: %s, 回退到 MinerU flash", e)
         return "flash"
+    finally:
+        doc.close()
 
 
 async def _parse_pdf(file_path: str) -> str:
     """Parse PDF using PyMuPDF."""
-    logger.info("开始解析 PDF (PyMuPDF): %s", file_path)
-
     try:
         import pymupdf
     except ImportError:
         raise ImportError("PyMuPDF not installed. Run: pip install pymupdf")
 
     doc = pymupdf.open(file_path)
-    pages = []
-    for page in doc:
-        pages.append(page.get_text())
-    doc.close()
+    try:
+        pages = []
+        for page in doc:
+            pages.append(page.get_text())
+    finally:
+        doc.close()
 
     text = "\n\n".join(pages)
     if not text.strip():
@@ -128,8 +127,6 @@ async def _parse_pdf_mineru(file_path: str, mode: str = "flash") -> str:
         file_path: Path to PDF file
         mode: 'flash' (free, no token) or 'precision' (requires MINERU_API_TOKEN)
     """
-    logger.info("开始解析 PDF (MinerU %s): %s", mode, file_path)
-
     try:
         from langchain_mineru import MinerULoader
     except ImportError:

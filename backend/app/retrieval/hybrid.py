@@ -10,6 +10,8 @@ def rrf_fusion(
     """Fuse dense and sparse results using RRF (Reciprocal Rank Fusion).
 
     Formula: score(doc) = Σ 1/(k + rank(doc))
+
+    Note: k=60 balances precision and recall for knowledge base Q&A.
     """
     rrf_scores: dict[str, dict] = {}
 
@@ -39,11 +41,13 @@ def rrf_fusion(
     # Remove internal fields and limit
     result = []
     for doc in sorted_docs[:top_n]:
-        result.append({
-            "chunk_id": doc["chunk_id"],
-            "text": doc["text"],
-            "score": doc["rrf_score"],
-            "doc_id": doc.get("doc_id", ""),
-            "kb_id": doc.get("kb_id", ""),
-        })
+        result.append(
+            {
+                "chunk_id": doc["chunk_id"],
+                "text": doc["text"],
+                "score": doc["rrf_score"],
+                "doc_id": doc.get("doc_id", ""),
+                "kb_id": doc.get("kb_id", ""),
+            }
+        )
     return result

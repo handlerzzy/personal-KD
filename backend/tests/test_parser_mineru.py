@@ -6,10 +6,8 @@ import os
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from app.document.parser import (
     _assess_pdf_complexity,
-    _parse_pdf,
     _parse_pdf_mineru,
     parse_document,
 )
@@ -50,9 +48,7 @@ class TestAssessPdfComplexity:
 
         blocks_mock = MagicMock()
         blocks_mock.__len__ = MagicMock(return_value=0)
-        mock_page.get_text.side_effect = lambda arg=None: (
-            blocks_mock if arg == "blocks" else ""
-        )
+        mock_page.get_text.side_effect = lambda arg=None: blocks_mock if arg == "blocks" else ""
 
         mock_doc = MagicMock()
         mock_doc.__len__ = MagicMock(return_value=1)
@@ -115,9 +111,7 @@ class TestParsePdfMineru:
         mock_doc = MagicMock()
         mock_doc.page_content = "# Title\n\nContent here"
 
-        with patch(
-            "langchain_mineru.MinerULoader"
-        ) as MockLoader:
+        with patch("langchain_mineru.MinerULoader") as MockLoader:  # noqa: N806
             MockLoader.return_value.load.return_value = [mock_doc]
             result = await _parse_pdf_mineru("test.pdf", mode="flash")
 
@@ -131,6 +125,7 @@ class TestParsePdfMineru:
                 table=True,
                 ocr=False,
                 timeout=60,
+                token=None,
             )
 
     @pytest.mark.asyncio
@@ -139,9 +134,7 @@ class TestParsePdfMineru:
         mock_doc = MagicMock()
         mock_doc.page_content = "# Complex Document\n\nTable content"
 
-        with patch(
-            "langchain_mineru.MinerULoader"
-        ) as MockLoader:
+        with patch("langchain_mineru.MinerULoader") as MockLoader:  # noqa: N806
             MockLoader.return_value.load.return_value = [mock_doc]
             with patch.dict(os.environ, {"MINERU_API_TOKEN": "test_token"}):
                 result = await _parse_pdf_mineru("test.pdf", mode="precision")
@@ -155,14 +148,13 @@ class TestParsePdfMineru:
                     table=True,
                     ocr=True,
                     timeout=60,
+                    token="test_token",
                 )
 
     @pytest.mark.asyncio
     async def test_fallback_to_pymupdf_on_error(self):
         """Should fallback to PyMuPDF on MinerU error."""
-        with patch(
-            "langchain_mineru.MinerULoader"
-        ) as MockLoader:
+        with patch("langchain_mineru.MinerULoader") as MockLoader:  # noqa: N806
             MockLoader.return_value.load.side_effect = Exception("API error")
             with patch("app.document.parser._parse_pdf") as mock_parse:
                 mock_parse.return_value = "fallback content"
