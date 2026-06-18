@@ -10,8 +10,8 @@ node_modules/
 dist/
 # Lock files (keep package-lock.json and uv.lock for reproducible builds)
 *.lock
-!package-lock.json
-!uv.lock
+\!package-lock.json
+\!uv.lock
 
 # IDE
 .vscode/
@@ -32,7 +32,15 @@ models/
 .DS_Store
 Thumbs.db
 
-# Claude
+# Claude (SDLC 内部工具，不公开)
+.claude/
+CLAUDE.md
+
+# 测试数据集（非单元测试，不上传）
+test_QA.md
+tests/
+
+# Claude 旧规则（保留以覆盖之前追踪的文件）
 .claude/reviews/
 .claude/commands
 .claude/settings.local.json
