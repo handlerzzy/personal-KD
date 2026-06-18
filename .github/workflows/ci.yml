@@ -52,6 +52,7 @@ jobs:
         run: uv run pytest backend/tests/ -v --tb=short
         env:
           # Ensure tests don't try to connect to real services
+          PYTHONPATH: backend
           ZHIPU_API_KEY: dummy
           LLM_API_BASE: http://localhost:11434/v1
           LLM_API_KEY: dummy

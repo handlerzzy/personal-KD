@@ -63,10 +63,11 @@ architecture_decisions:  # ≤5条
 modified_files:
   - .github/workflows/ci.yml
   - .claude/project-state.md
+last_updated: "2026-06-19"
 todo_items: []
 review_retry_count: 0
 phase_history: []
-key_context: "CI修复：uv sync --group→--extra dev，Node.js 18→22"
+key_context: "CI持续修复：SECRET_KEY补传+PYTHONPATH设置"
 review_fixes: []
 ```
 
