@@ -58,6 +58,7 @@ jobs:
           LLM_MODEL: mimo-v2.5
           DASHSCOPE_API_KEY: dummy
           QDRANT_URL: http://localhost:6333
+          SECRET_KEY: ci-test-secret-key-not-for-production
 
   frontend-build:
     name: Frontend Type Check & Build
