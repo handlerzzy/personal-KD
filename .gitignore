@@ -25,8 +25,9 @@ dist/
 # Data
 data/
 
-# Models (project root only — not backend/app/models/)
+# Models (reranker cache + potential ML model outputs)
 /models/
+backend/models/
 
 # OS
 .DS_Store
