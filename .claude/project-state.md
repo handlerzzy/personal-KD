@@ -61,13 +61,17 @@ architecture_decisions:  # ≤5条
   - "SSE 双事件流: reasoning_content + content 分别推送，前端分区域渲染"
   - "梯度验证: analytical(完整性,阈值0.6)+multi_hop(有据性+完整性,阈值0.7)"
 modified_files:
-  - .github/workflows/ci.yml
+  - .gitignore
+  - backend/app/models/__init__.py
+  - backend/app/models/conversation.py
+  - backend/app/models/document.py
+  - backend/app/models/kb.py
   - .claude/project-state.md
 last_updated: "2026-06-19"
 todo_items: []
 review_retry_count: 0
 phase_history: []
-key_context: "CI持续修复：SECRET_KEY补传+PYTHONPATH设置"
+key_context: "CI修复.gitignore models/无前缀匹配误吞backend/app/models/ Python包"
 review_fixes: []
 ```
 
