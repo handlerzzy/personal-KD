@@ -1124,6 +1124,7 @@ dependencies = [
     { name = "langgraph-checkpoint-sqlite" },
     { name = "langsmith" },
     { name = "mineru-open-sdk" },
+    { name = "modelscope" },
     { name = "passlib", extra = ["bcrypt"] },
     { name = "pydantic" },
     { name = "pydantic-settings" },
@@ -1166,6 +1167,7 @@ requires-dist = [
     { name = "langgraph-checkpoint-sqlite", specifier = ">=3.1.0" },
     { name = "langsmith", specifier = ">=0.8.7" },
     { name = "mineru-open-sdk", specifier = ">=0.2.0" },
+    { name = "modelscope", specifier = ">=1.20.0" },
     { name = "mypy", marker = "extra == 'dev'" },
     { name = "passlib", extras = ["bcrypt"], specifier = ">=1.7.4" },
     { name = "pydantic", specifier = ">=2.0" },
@@ -1571,6 +1573,23 @@ dependencies = [
 sdist = { url = "https://mirrors.aliyun.com/pypi/packages/64/5b/be9b0ae9f515132741f91b64f3de7dcb448d8701503b82e3fee72f0aa402/mineru_open_sdk-0.2.5.tar.gz", hash = "sha256:430baeacae3f18537edb62e69532620ce7fbead7d43f72b986d0cb1cc7932ee9" }
 wheels = [
     { url = "https://mirrors.aliyun.com/pypi/packages/96/dd/667e108350a0b4683e913d2b15b21da3b3117469f586bb0652c9cbc2754d/mineru_open_sdk-0.2.5-py3-none-any.whl", hash = "sha256:db22bb764318eb3167d4cfb28849df70159b76a0ad268648ad91e9f2d47c0c1c" },
+]
+
+[[package]]
+name = "modelscope"
+version = "1.37.1"
+source = { registry = "https://mirrors.aliyun.com/pypi/simple/" }
+dependencies = [
+    { name = "filelock" },
+    { name = "packaging" },
+    { name = "requests" },
+    { name = "setuptools" },
+    { name = "tqdm" },
+    { name = "urllib3" },
+]
+sdist = { url = "https://mirrors.aliyun.com/pypi/packages/fa/9e/9fd75db9797b9543ce78a646538a3c5537cb6adb015d128b4cbc2b4169e2/modelscope-1.37.1.tar.gz", hash = "sha256:7d9124970b4e53639bebe89f60473dee7d5a80589bf35bfbef4c839933cdaf93" }
+wheels = [
+    { url = "https://mirrors.aliyun.com/pypi/packages/15/f5/286dd2d21802e4954a28e73913af7bc79e882f23fcd98db2b5810fc590cf/modelscope-1.37.1-py3-none-any.whl", hash = "sha256:7f7af2dd37339188cbd3c18a858b1297b8a75222b9a0fbf176c7df8189cac39a" },
 ]
 
 [[package]]
