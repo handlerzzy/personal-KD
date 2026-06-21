@@ -85,6 +85,27 @@ open http://localhost:5173
 | `QDRANT_URL` | Qdrant 地址（默认 localhost:6333） |
 | `SECRET_KEY` | JWT 签名密钥（生产环境必须设置） |
 
+## 模型说明
+
+项目使用 Jina Reranker v3 进行检索结果重排序（1.2GB），采用 **运行时自动下载** 策略：
+
+- **首次启动**：自动从 [ModelScope](https://modelscope.cn/models/jinaai/jina-reranker-v3) 下载模型到 `backend/models/jina-reranker-v3/`
+- **后续启动**：检测到本地模型已存在，直接加载，无需重复下载
+- **Docker 部署**：通过 volume 挂载持久化模型目录，容器重建时无需重新下载
+
+### 手动下载（离线环境）
+
+```bash
+# 方式 1：使用 modelscope CLI
+pip install modelscope
+modelscope download --model jinaai/jina-reranker-v3 --local_dir backend/models/jina-reranker-v3
+
+# 方式 2：使用 Python
+python -c "from modelscope import snapshot_download; snapshot_download('jinaai/jina-reranker-v3', local_dir='backend/models/jina-reranker-v3')"
+```
+
+> **注意**：`backend/models/` 已被 `.gitignore` 排除，不会提交到 Git 仓库。
+
 ## Docker 部署
 
 ```bash
@@ -92,6 +113,8 @@ docker-compose up --build
 ```
 
 多阶段构建：Stage 1 构建前端（Node 18），Stage 2 构建后端（Python 3.12）并将前端 dist 复制到 `backend/static/`，后端直接托管 SPA 静态文件。
+
+首次启动时会自动下载 Reranker 模型（约 1.2GB），请确保网络通畅。模型通过 volume 挂载持久化，后续重建容器无需重新下载。
 
 访问 `http://localhost:8000`。
 

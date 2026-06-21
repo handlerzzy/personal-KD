@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import torch
 
 from app.config import settings
@@ -7,12 +9,46 @@ from app.config import settings
 _model = None
 _device = None
 
+MODELSCOPE_REPO = "jinaai/jina-reranker-v3"
+
 
 def _get_device() -> str:
     global _device
     if _device is None:
         _device = "cuda" if torch.cuda.is_available() else "cpu"
     return _device
+
+
+def _ensure_model_downloaded(model_path: Path) -> None:
+    """Download model from ModelScope if not exists locally."""
+    if (model_path / "model.safetensors").exists():
+        return
+
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.info("模型文件不存在，从 ModelScope 下载: %s", MODELSCOPE_REPO)
+
+    try:
+        from modelscope import snapshot_download
+
+        model_path.mkdir(parents=True, exist_ok=True)
+        snapshot_download(
+            MODELSCOPE_REPO,
+            local_dir=str(model_path),
+        )
+        logger.info("模型下载完成: %s", model_path)
+    except ImportError:
+        logger.error(
+            "modelscope 未安装，请运行: pip install modelscope\n"
+            "或手动下载模型: modelscope download --model %s --local_dir %s",
+            MODELSCOPE_REPO,
+            model_path,
+        )
+        raise
+    except Exception:
+        logger.exception("从 ModelScope 下载模型失败")
+        raise
 
 
 def get_model():
@@ -23,10 +59,15 @@ def get_model():
         from transformers import AutoModel
 
         logger = logging.getLogger(__name__)
-        logger.info("Loading Jina Reranker v3 from %s", settings.reranker_model_path)
+        model_path = Path(settings.reranker_model_path)
+
+        # 自动下载模型（如果不存在）
+        _ensure_model_downloaded(model_path)
+
+        logger.info("Loading Jina Reranker v3 from %s", model_path)
         try:
             _model = AutoModel.from_pretrained(
-                settings.reranker_model_path,
+                str(model_path),
                 dtype=torch.float16 if _get_device() == "cuda" else "auto",
                 device_map=_get_device(),
                 trust_remote_code=True,
