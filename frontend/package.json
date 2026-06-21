@@ -2,6 +2,9 @@
   "name": "kb-agent-frontend",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=18"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
