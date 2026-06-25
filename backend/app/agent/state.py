@@ -12,15 +12,14 @@ class AgentState(TypedDict):
     kb_id: str
     query: str
     retrieved_docs: list[dict]
-    reasoning: str
+    reasoning: str  #llm思考过程
     answer: str
     sources: list[dict]
 
-    # ---- Agentic RAG 扩展字段 ----
-    # 查询分类
+
     query_type: str  # "factual" | "analytical" | "multi_hop" | "summary"
     needs_retrieval: bool  # 是否需要检索知识库
-    search_strategy: dict  # 检索策略参数 (use_hyde, multi_query_count, etc.)
+    search_strategy: dict  # 检索策略参数 (use_hyde, multi_query_count)
 
     # 查询改写（保留用于向后兼容，当前未使用）
     original_query: str  # 原始查询

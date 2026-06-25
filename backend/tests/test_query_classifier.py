@@ -77,7 +77,7 @@ class TestParseClassification:
         assert result["needs_retrieval"] is True  # default
         assert result["query_type"] == "summary"
         assert result["use_hyde"] is False  # default
-        assert result["multi_query_count"] == 1  # default
+        assert result["multi_query_count"] == 2  # summary → 2 per strategy table
 
     @pytest.mark.parametrize("qtype", ["factual", "analytical", "multi_hop", "summary"])
     def test_should_accept_all_valid_query_types(self, qtype: str):

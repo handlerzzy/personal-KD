@@ -184,18 +184,7 @@ def _build_initial_state(
     query: str,
     kb_id: str,
 ) -> AgentState:
-    """Build initial state with defaults for all Agentic RAG fields.
-
-    IMPORTANT: We do NOT pass ``messages`` in the initial state. The
-    checkpointer (via ``add_messages`` reducer) owns conversation history
-    and restores it from the previous checkpoint when ``thread_id`` matches.
-
-    If we included messages here, ``_messages_from_dicts`` would create
-    objects with *new* IDs that don't match the checkpoint's IDs, causing
-    ``add_messages`` to append them as duplicates instead of merging.
-    ``qa_node`` reads history from ``state["messages"]`` (restored by the
-    checkpointer) and appends the current query explicitly.
-    """
+    """Build the initial state for the graph execution."""
     return {
         "messages": [],
         "kb_id": kb_id,

@@ -37,12 +37,12 @@ _MULTI_QUERY_PROMPT = """你是一个查询扩展专家。为以下问题生成 
 查询变体:"""
 
 
-from app.llm_cache import get_simple_llm  # noqa: E402
+from app.llm_cache import get_dashscope_llm  # noqa: E402
 
 
-def _get_llm(temperature: float = 0.3) -> ChatOpenAI:
-    """Get cached LLM for query expansion tasks."""
-    return get_simple_llm(temperature=temperature, streaming=False)
+def _get_llm(temperature: float = 0) -> ChatOpenAI:
+    """Get DashScope qwen-flash for fast query expansion tasks."""
+    return get_dashscope_llm(temperature=temperature)
 
 
 async def _generate_hyde(query: str) -> str:
