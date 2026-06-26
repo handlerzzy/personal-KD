@@ -17,8 +17,8 @@ import re
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 
-from app.agent.state import AgentState
 from app.agent.metrics import get_metrics_tracker
+from app.agent.state import AgentState
 from app.answer_cleaner import strip_answer
 
 logger = logging.getLogger(__name__)

@@ -12,10 +12,9 @@ class AgentState(TypedDict):
     kb_id: str
     query: str
     retrieved_docs: list[dict]
-    reasoning: str  #llm思考过程
+    reasoning: str  # llm思考过程
     answer: str
     sources: list[dict]
-
 
     query_type: str  # "factual" | "analytical" | "multi_hop" | "summary"
     needs_retrieval: bool  # 是否需要检索知识库
