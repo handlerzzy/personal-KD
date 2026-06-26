@@ -25,6 +25,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 
 from app.agent.state import AgentState
+from app.agent.metrics import get_metrics_tracker
 
 logger = logging.getLogger(__name__)
 
@@ -138,7 +139,7 @@ def _parse_classification(raw: str) -> dict:
             qtype = "factual"
 
         # 3. Code decides strategy, NOT the LLM output
-        strategy = RETRIEVAL_STRATEGIES.get(qtype, RETRIEVAL_STRATEGIES["default"])
+        strategy = RETRIEVAL_STRATEGIES.get(qtype, RETRIEVAL_STRATEGIES["default"]) 
 
         # 4. Chitchat forces needs_retrieval=false regardless of LLM output
         needs_retrieval = bool(data.get("needs_retrieval", True))
@@ -180,6 +181,13 @@ async def classify_query(state: AgentState) -> dict:
             **RETRIEVAL_STRATEGIES["default"],
             "reasoning": "",
         }
+
+    # Log classification metrics for observability
+    get_metrics_tracker().log_classification(
+        query_type=result["query_type"],
+        needs_retrieval=result["needs_retrieval"],
+        reasoning=result.get("reasoning", ""),
+    )
 
     return {
         "needs_retrieval": result["needs_retrieval"],

@@ -251,7 +251,7 @@ class TestMultiQueryRetrieve:
 
         with (
             patch(
-                "app.agent.nodes.retrieval_node.embed_query",
+                "app.agent.nodes.retrieval_node._embed_query_with_cache",
                 new_callable=AsyncMock,
                 return_value=[0.1] * 1024,
             ),
@@ -294,7 +294,7 @@ class TestMultiQueryRetrieve:
 
         with (
             patch(
-                "app.agent.nodes.retrieval_node.embed_query",
+                "app.agent.nodes.retrieval_node._embed_query_with_cache",
                 new_callable=AsyncMock,
                 return_value=[0.1] * 1024,
             ),
@@ -339,7 +339,7 @@ class TestMultiQueryRetrieve:
 
         with (
             patch(
-                "app.agent.nodes.retrieval_node.embed_query",
+                "app.agent.nodes.retrieval_node._embed_query_with_cache",
                 new_callable=AsyncMock,
                 return_value=[0.1] * 1024,
             ),
@@ -366,7 +366,7 @@ class TestMultiQueryRetrieve:
 
         with (
             patch(
-                "app.agent.nodes.retrieval_node.embed_query",
+                "app.agent.nodes.retrieval_node._embed_query_with_cache",
                 new_callable=AsyncMock,
                 return_value=[0.1] * 1024,
             ),
@@ -397,7 +397,7 @@ class TestMultiQueryRetrieve:
         with (
             patch("app.agent.nodes.retrieval_node._generate_hyde", mock_hyde),
             patch(
-                "app.agent.nodes.retrieval_node.embed_query",
+                "app.agent.nodes.retrieval_node._embed_query_with_cache",
                 new_callable=AsyncMock,
                 return_value=[0.1] * 1024,
             ),
@@ -443,7 +443,7 @@ class TestRetrievalNode:
 
         with (
             patch(
-                "app.agent.nodes.retrieval_node.embed_query",
+                "app.agent.nodes.retrieval_node._embed_query_with_cache",
                 new_callable=AsyncMock,
                 return_value=[0.1] * 1024,
             ),
@@ -477,7 +477,7 @@ class TestRetrievalNode:
         with (
             patch("app.agent.nodes.retrieval_node._generate_hyde", mock_hyde),
             patch(
-                "app.agent.nodes.retrieval_node.embed_query",
+                "app.agent.nodes.retrieval_node._embed_query_with_cache",
                 new_callable=AsyncMock,
                 return_value=[0.1] * 1024,
             ),
@@ -507,7 +507,7 @@ class TestRetrievalNode:
         with (
             patch("app.agent.nodes.retrieval_node._generate_multi_queries", mock_multi),
             patch(
-                "app.agent.nodes.retrieval_node.embed_query",
+                "app.agent.nodes.retrieval_node._embed_query_with_cache",
                 new_callable=AsyncMock,
                 return_value=[0.1] * 1024,
             ),
@@ -539,7 +539,7 @@ class TestRetrievalNode:
             patch("app.agent.nodes.retrieval_node._generate_multi_queries", mock_multi),
             patch("app.agent.nodes.retrieval_node._generate_hyde", mock_hyde),
             patch(
-                "app.agent.nodes.retrieval_node.embed_query",
+                "app.agent.nodes.retrieval_node._embed_query_with_cache",
                 new_callable=AsyncMock,
                 return_value=[0.1] * 1024,
             ),
@@ -591,7 +591,7 @@ class TestRetrievalNode:
 
         with (
             patch(
-                "app.agent.nodes.retrieval_node.embed_query",
+                "app.agent.nodes.retrieval_node._embed_query_with_cache",
                 new_callable=AsyncMock,
                 return_value=[0.1] * 1024,
             ),
@@ -621,7 +621,7 @@ class TestRetrievalNode:
 
         with (
             patch(
-                "app.agent.nodes.retrieval_node.embed_query",
+                "app.agent.nodes.retrieval_node._embed_query_with_cache",
                 new_callable=AsyncMock,
                 return_value=[0.1] * 1024,
             ),
@@ -636,10 +636,10 @@ class TestRetrievalNode:
         ):
             await retrieval_node(state)
 
-        mock_rrf.assert_called_once_with(dense_docs, sparse_docs, top_n=30)
+        mock_rrf.assert_called_once_with(dense_docs, sparse_docs, top_n=15)
 
     async def test_should_call_rerank_with_query_and_fused_docs(self):
-        """rerank should receive the query and fused documents with top_n=10."""
+        """rerank should receive the query and fused documents with query-type-aware top_n."""
         from app.agent.nodes.retrieval_node import retrieval_node
 
         state = make_state(query="测试查询")
@@ -650,7 +650,7 @@ class TestRetrievalNode:
 
         with (
             patch(
-                "app.agent.nodes.retrieval_node.embed_query",
+                "app.agent.nodes.retrieval_node._embed_query_with_cache",
                 new_callable=AsyncMock,
                 return_value=[0.1] * 1024,
             ),
@@ -665,7 +665,7 @@ class TestRetrievalNode:
         ):
             await retrieval_node(state)
 
-        mock_rerank.assert_awaited_once_with("测试查询", fused, top_n=10)
+        mock_rerank.assert_awaited_once_with("测试查询", fused, top_n=5)
 
     async def test_should_handle_rerank_failure_gracefully(self):
         """When rerank raises an exception, retrieval_node should propagate it (or handle)."""
@@ -676,7 +676,7 @@ class TestRetrievalNode:
 
         with (
             patch(
-                "app.agent.nodes.retrieval_node.embed_query",
+                "app.agent.nodes.retrieval_node._embed_query_with_cache",
                 new_callable=AsyncMock,
                 return_value=[0.1] * 1024,
             ),
@@ -715,7 +715,7 @@ class TestDenseSearchWithHyde:
 
         with (
             patch("app.agent.nodes.retrieval_node._generate_hyde", mock_hyde),
-            patch("app.agent.nodes.retrieval_node.embed_query", mock_embed),
+            patch("app.agent.nodes.retrieval_node._embed_query_with_cache", mock_embed),
             patch("app.agent.nodes.retrieval_node.dense.search", mock_search),
         ):
             result = await _dense_search_with_hyde("原始查询", "test_kb", use_hyde=True, k=50)
@@ -732,7 +732,7 @@ class TestDenseSearchWithHyde:
         mock_search = AsyncMock(return_value=[make_doc("c1", "内容", 0.9)])
 
         with (
-            patch("app.agent.nodes.retrieval_node.embed_query", mock_embed),
+            patch("app.agent.nodes.retrieval_node._embed_query_with_cache", mock_embed),
             patch("app.agent.nodes.retrieval_node.dense.search", mock_search),
         ):
             result = await _dense_search_with_hyde("原始查询", "test_kb", use_hyde=False, k=50)

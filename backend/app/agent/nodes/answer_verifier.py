@@ -18,6 +18,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 
 from app.agent.state import AgentState
+from app.agent.metrics import get_metrics_tracker
 from app.answer_cleaner import strip_answer
 
 logger = logging.getLogger(__name__)
@@ -193,6 +194,15 @@ async def verify_answer(state: AgentState) -> dict:
             "feedback": "验证过程异常",
             "needs_refine": False,
         }
+
+    # Log verification metrics for observability
+    get_metrics_tracker().log_verification(
+        query_type=query_type,
+        quality_score=result["quality_score"],
+        verification_type=verification_type,
+        needs_refine=result["needs_refine"],
+        kb_id=state.get("kb_id", ""),
+    )
 
     return {
         "quality_score": result["quality_score"],

@@ -63,6 +63,13 @@ _THINKING_BUDGET_MAP = {
     "multi_hop": 4096,  # 多跳查询，重度推理
 }
 
+_HISTORY_WINDOW = {
+    "factual": 4,  # 2 rounds
+    "summary": 6,  # 3 rounds
+    "analytical": 8,  # 4 rounds
+    "multi_hop": 10,  # 5 rounds
+}
+
 # Module-level cache for _ReasoningChatOpenAI instances
 _reasoning_llm_cache: dict[str, _ReasoningChatOpenAI] = {}
 
@@ -206,12 +213,6 @@ async def qa_node(state: AgentState) -> dict:
     # Use msg.type ("human"/"ai") not msg.role — LangChain BaseMessage
     # objects do NOT expose a "role" attribute; getattr(msg, "role") always
     # returns "" which silently dropped the entire history.
-    _HISTORY_WINDOW = {  # noqa: N806
-        "factual": 4,  # 2 rounds
-        "summary": 6,  # 3 rounds
-        "analytical": 8,  # 4 rounds
-        "multi_hop": 10,  # 5 rounds
-    }
     history_msgs = state.get("messages", [])
     window = _HISTORY_WINDOW.get(query_type, 8)
     for msg in history_msgs[-window:]:
