@@ -6,10 +6,12 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     # Zhipu Embedding
     zhipu_api_key: str = ""
-    # LLM (mimo-2.5)
+    # LLM (OpenAI-compatible)
     llm_api_base: str = ""  # must be set in .env (e.g. https://api.openai.com/v1)
     llm_api_key: str = ""
     llm_model: str = "mimo-v2.5"
+    # Model provider: mimo | deepseek | openai  (controls thinking param format)
+    llm_provider: str = "mimo"
     # DashScope (qwen-flash for fast classification)
     dashscope_api_key: str = ""
     dashscope_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"

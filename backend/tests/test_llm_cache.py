@@ -23,31 +23,33 @@ class TestGetLlm:
     @patch("app.llm_cache.settings")
     def test_should_cache_and_return_same_instance(self, mock_settings, mock_cls):
         """Same cache key should return the same cached instance."""
-        mock_settings.llm_model = "mimo-v2.5"
+        mock_settings.llm_model = "deepseek-chat"
         mock_settings.llm_api_key = "test-key"
-        mock_settings.llm_api_base = "https://api.test.com/v1"
+        mock_settings.llm_api_base = "https://api.deepseek.com/v1"
+        mock_settings.llm_provider = "deepseek"
         instance = MagicMock()
         mock_cls.return_value = instance
 
-        result1 = get_llm(streaming=True, enable_thinking=True, thinking_budget=2048)
-        result2 = get_llm(streaming=True, enable_thinking=True, thinking_budget=2048)
+        result1 = get_llm(streaming=True, enable_thinking=True, effort="high")
+        result2 = get_llm(streaming=True, enable_thinking=True, effort="high")
 
         assert result1 is result2
         mock_cls.assert_called_once()  # Only one ChatOpenAI created
 
     @patch("app.llm_cache.ChatOpenAI")
     @patch("app.llm_cache.settings")
-    def test_should_create_different_instances_for_different_keys(self, mock_settings, mock_cls):
-        """Different cache keys should create different instances."""
-        mock_settings.llm_model = "mimo-v2.5"
+    def test_should_create_different_instances_for_different_effort(self, mock_settings, mock_cls):
+        """Different effort levels should create different instances."""
+        mock_settings.llm_model = "deepseek-chat"
         mock_settings.llm_api_key = "test-key"
-        mock_settings.llm_api_base = "https://api.test.com/v1"
+        mock_settings.llm_api_base = "https://api.deepseek.com/v1"
+        mock_settings.llm_provider = "deepseek"
         instance_a = MagicMock(name="instance_a")
         instance_b = MagicMock(name="instance_b")
         mock_cls.side_effect = [instance_a, instance_b]
 
-        result1 = get_llm(streaming=True, enable_thinking=True, thinking_budget=2048)
-        result2 = get_llm(streaming=False, enable_thinking=False, thinking_budget=1024)
+        result1 = get_llm(streaming=True, enable_thinking=True, effort="high")
+        result2 = get_llm(streaming=True, enable_thinking=True, effort="max")
 
         assert result1 is not result2
         assert mock_cls.call_count == 2
@@ -55,43 +57,47 @@ class TestGetLlm:
     @patch("app.llm_cache.ChatOpenAI")
     @patch("app.llm_cache.settings")
     def test_should_use_correct_cache_key_tuple(self, mock_settings, mock_cls):
-        """Cache key should be (streaming, enable_thinking, thinking_budget)."""
-        mock_settings.llm_model = "mimo-v2.5"
+        """Cache key should be (streaming, enable_thinking, effort)."""
+        mock_settings.llm_model = "deepseek-chat"
         mock_settings.llm_api_key = "test-key"
-        mock_settings.llm_api_base = "https://api.test.com/v1"
+        mock_settings.llm_api_base = "https://api.deepseek.com/v1"
+        mock_settings.llm_provider = "deepseek"
         mock_cls.return_value = MagicMock()
 
-        get_llm(streaming=True, enable_thinking=True, thinking_budget=4096)
+        get_llm(streaming=True, enable_thinking=True, effort="max")
 
-        assert (True, True, 4096) in _llm_cache
+        assert (True, True, "max") in _llm_cache
 
     @patch("app.llm_cache.ChatOpenAI")
     @patch("app.llm_cache.settings")
     def test_should_pass_thinking_config_when_enabled(self, mock_settings, mock_cls):
         """When enable_thinking=True, extra_body should include thinking config."""
-        mock_settings.llm_model = "mimo-v2.5"
+        mock_settings.llm_model = "deepseek-chat"
         mock_settings.llm_api_key = "test-key"
-        mock_settings.llm_api_base = "https://api.test.com/v1"
+        mock_settings.llm_api_base = "https://api.deepseek.com/v1"
+        mock_settings.llm_provider = "deepseek"
         mock_cls.return_value = MagicMock()
 
-        get_llm(streaming=True, enable_thinking=True, thinking_budget=2048)
+        get_llm(streaming=True, enable_thinking=True, effort="high")
 
         call_kwargs = mock_cls.call_args[1]
-        assert call_kwargs["extra_body"] == {"thinking": {"type": "enabled", "budget_tokens": 2048}}
+        assert call_kwargs["extra_body"] == {"thinking": {"type": "enabled"}}
+        assert "budget_tokens" not in call_kwargs["extra_body"]["thinking"]
 
     @patch("app.llm_cache.ChatOpenAI")
     @patch("app.llm_cache.settings")
-    def test_should_pass_disabled_thinking_config(self, mock_settings, mock_cls):
-        """When enable_thinking=False, extra_body should disable thinking."""
-        mock_settings.llm_model = "mimo-v2.5"
+    def test_should_send_thinking_disabled_when_thinking_disabled(self, mock_settings, mock_cls):
+        """When enable_thinking=False for thinking-capable providers, send thinking: disabled."""
+        mock_settings.llm_model = "deepseek-chat"
         mock_settings.llm_api_key = "test-key"
-        mock_settings.llm_api_base = "https://api.test.com/v1"
+        mock_settings.llm_api_base = "https://api.deepseek.com/v1"
+        mock_settings.llm_provider = "deepseek"
         mock_cls.return_value = MagicMock()
 
-        get_llm(streaming=False, enable_thinking=False, thinking_budget=0)
+        get_llm(streaming=False, enable_thinking=False, effort="")
 
         call_kwargs = mock_cls.call_args[1]
-        assert call_kwargs["extra_body"] == {"thinking": {"type": "disabled"}}
+        assert call_kwargs["extra_body"]["thinking"]["type"] == "disabled"
 
 
 class TestGetSimpleLlm:
@@ -101,9 +107,10 @@ class TestGetSimpleLlm:
     @patch("app.llm_cache.settings")
     def test_should_cache_simple_instance(self, mock_settings, mock_cls):
         """Same parameters should return the same cached instance."""
-        mock_settings.llm_model = "mimo-v2.5"
+        mock_settings.llm_model = "deepseek-chat"
         mock_settings.llm_api_key = "test-key"
-        mock_settings.llm_api_base = "https://api.test.com/v1"
+        mock_settings.llm_api_base = "https://api.deepseek.com/v1"
+        mock_settings.llm_provider = "deepseek"
         instance = MagicMock()
         mock_cls.return_value = instance
 
@@ -117,9 +124,10 @@ class TestGetSimpleLlm:
     @patch("app.llm_cache.settings")
     def test_should_use_fixed_cache_key(self, mock_settings, mock_cls):
         """get_simple_llm always uses cache key (streaming, False, 0)."""
-        mock_settings.llm_model = "mimo-v2.5"
+        mock_settings.llm_model = "deepseek-chat"
         mock_settings.llm_api_key = "test-key"
-        mock_settings.llm_api_base = "https://api.test.com/v1"
+        mock_settings.llm_api_base = "https://api.deepseek.com/v1"
+        mock_settings.llm_provider = "deepseek"
         mock_cls.return_value = MagicMock()
 
         get_simple_llm(temperature=0, streaming=False)
@@ -200,16 +208,17 @@ class TestCacheClear:
     @patch("app.llm_cache.settings")
     def test_should_recreate_after_cache_clear(self, mock_settings, mock_cls):
         """After clearing cache, a new instance should be created."""
-        mock_settings.llm_model = "mimo-v2.5"
+        mock_settings.llm_model = "deepseek-chat"
         mock_settings.llm_api_key = "test-key"
-        mock_settings.llm_api_base = "https://api.test.com/v1"
+        mock_settings.llm_api_base = "https://api.deepseek.com/v1"
+        mock_settings.llm_provider = "deepseek"
         instance1 = MagicMock(name="first")
         instance2 = MagicMock(name="second")
         mock_cls.side_effect = [instance1, instance2]
 
-        result1 = get_llm(streaming=True, enable_thinking=True, thinking_budget=2048)
+        result1 = get_llm(streaming=True, enable_thinking=True, effort="high")
         _llm_cache.clear()
-        result2 = get_llm(streaming=True, enable_thinking=True, thinking_budget=2048)
+        result2 = get_llm(streaming=True, enable_thinking=True, effort="high")
 
         assert result1 is not result2
         assert mock_cls.call_count == 2
@@ -222,15 +231,97 @@ class TestDeterministicKeys:
     @patch("app.llm_cache.settings")
     def test_should_produce_same_key_for_same_args(self, mock_settings, mock_cls):
         """Calling get_llm twice with identical args should hit cache."""
-        mock_settings.llm_model = "mimo-v2.5"
+        mock_settings.llm_model = "deepseek-chat"
         mock_settings.llm_api_key = "test-key"
-        mock_settings.llm_api_base = "https://api.test.com/v1"
+        mock_settings.llm_api_base = "https://api.deepseek.com/v1"
+        mock_settings.llm_provider = "deepseek"
         mock_cls.return_value = MagicMock()
 
-        # Call many times with same args
         results = [
-            get_llm(streaming=True, enable_thinking=True, thinking_budget=2048) for _ in range(5)
+            get_llm(streaming=True, enable_thinking=True, effort="high") for _ in range(5)
         ]
 
         assert all(r is results[0] for r in results)
-        mock_cls.assert_called_once()  # Only one instance created
+        mock_cls.assert_called_once()
+
+
+class TestProviderIntegration:
+    """Integration tests: get_llm() with different providers."""
+
+    @patch("app.llm_cache.ChatOpenAI")
+    @patch("app.llm_cache.settings")
+    def test_deepseek_should_not_send_budget_tokens(self, mock_settings, mock_cls):
+        """DeepSeek: get_llm should NOT include budget_tokens in extra_body."""
+        mock_settings.llm_model = "deepseek-chat"
+        mock_settings.llm_api_key = "test-key"
+        mock_settings.llm_api_base = "https://api.deepseek.com/v1"
+        mock_settings.llm_provider = "deepseek"
+        mock_cls.return_value = MagicMock()
+
+        get_llm(streaming=True, enable_thinking=True, effort="high")
+
+        call_kwargs = mock_cls.call_args[1]
+        extra = call_kwargs.get("extra_body", {})
+        assert extra == {"thinking": {"type": "enabled"}}
+        assert "budget_tokens" not in extra.get("thinking", {})
+
+    @patch("app.llm_cache.ChatOpenAI")
+    @patch("app.llm_cache.settings")
+    def test_deepseek_should_include_reasoning_effort_max(self, mock_settings, mock_cls):
+        """DeepSeek: get_llm with effort='max' should include reasoning_effort."""
+        mock_settings.llm_model = "deepseek-chat"
+        mock_settings.llm_api_key = "test-key"
+        mock_settings.llm_api_base = "https://api.deepseek.com/v1"
+        mock_settings.llm_provider = "deepseek"
+        mock_cls.return_value = MagicMock()
+
+        get_llm(streaming=True, enable_thinking=True, effort="max")
+
+        call_kwargs = mock_cls.call_args[1]
+        assert call_kwargs.get("model_kwargs", {}).get("reasoning_effort") == "max"
+
+    @patch("app.llm_cache.ChatOpenAI")
+    @patch("app.llm_cache.settings")
+    def test_deepseek_should_not_include_reasoning_effort_default(self, mock_settings, mock_cls):
+        """DeepSeek: get_llm with effort='high' should NOT include reasoning_effort."""
+        mock_settings.llm_model = "deepseek-chat"
+        mock_settings.llm_api_key = "test-key"
+        mock_settings.llm_api_base = "https://api.deepseek.com/v1"
+        mock_settings.llm_provider = "deepseek"
+        mock_cls.return_value = MagicMock()
+
+        get_llm(streaming=True, enable_thinking=True, effort="high")
+
+        call_kwargs = mock_cls.call_args[1]
+        assert "model_kwargs" not in call_kwargs
+
+    @patch("app.llm_cache.ChatOpenAI")
+    @patch("app.llm_cache.settings")
+    def test_deepseek_should_send_thinking_disabled(self, mock_settings, mock_cls):
+        """DeepSeek: extra_body with thinking:disabled when thinking is off."""
+        mock_settings.llm_model = "deepseek-chat"
+        mock_settings.llm_api_key = "test-key"
+        mock_settings.llm_api_base = "https://api.deepseek.com/v1"
+        mock_settings.llm_provider = "deepseek"
+        mock_cls.return_value = MagicMock()
+
+        get_llm(streaming=False, enable_thinking=False, effort="")
+
+        call_kwargs = mock_cls.call_args[1]
+        assert call_kwargs["extra_body"]["thinking"]["type"] == "disabled"
+        assert "model_kwargs" not in call_kwargs
+
+    @patch("app.llm_cache.ChatOpenAI")
+    @patch("app.llm_cache.settings")
+    def test_openai_should_send_no_extra_body(self, mock_settings, mock_cls):
+        """OpenAI: no extra_body regardless of thinking setting."""
+        mock_settings.llm_model = "gpt-4o"
+        mock_settings.llm_api_key = "test-key"
+        mock_settings.llm_api_base = "https://api.openai.com/v1"
+        mock_settings.llm_provider = "openai"
+        mock_cls.return_value = MagicMock()
+
+        get_llm(streaming=True, enable_thinking=True, effort="high")
+
+        call_kwargs = mock_cls.call_args[1]
+        assert "extra_body" not in call_kwargs

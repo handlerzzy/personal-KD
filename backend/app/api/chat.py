@@ -7,14 +7,14 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from langchain_openai import ChatOpenAI
+from langchain_core.messages import AIMessageChunk
 from pydantic import BaseModel
 
 from app.agent.graph import stream_chat
 from app.answer_cleaner import strip_answer
 from app.auth import get_current_user
-from app.config import settings
 from app.deps import get_user_conv, get_user_kb
+from app.llm_cache import get_dashscope_llm
 from app.persistence.conv_repo import ConvRepository
 from app.persistence.message_repo import MessageRepository
 from app.utils.sources import build_sources
@@ -44,18 +44,10 @@ async def _generate_title_async(
     This function runs in background without blocking the main SSE stream.
     """
     try:
-        # Use a separate LLM instance WITHOUT thinking mode for title generation
-        # mimo-v2.5 with thinking enabled returns empty content, only reasoning_tokens
-        title_llm = ChatOpenAI(
-            model=settings.llm_model,
-            api_key=settings.llm_api_key,
-            base_url=settings.llm_api_base,
-            temperature=0.3,
-            max_tokens=30,
-            max_retries=1,
-            # Disable thinking mode explicitly
-            extra_body={"thinking": {"type": "disabled"}},
-        )
+        # Use DashScope Qwen-Flash for lightweight title generation.
+        # Avoids using the main LLM (DeepSeek) which is heavier and slower
+        # for this simple task.
+        title_llm = get_dashscope_llm(temperature=0.3)
 
         title_prompt = (
             "请用10字以内总结这段对话的核心内容，直接输出标题，不要加任何修饰：\n"
@@ -69,7 +61,11 @@ async def _generate_title_async(
             else ""
         )
         logger.info("Title generated: conv_id=%s, title=%s", conv_id, new_title)
-        if new_title and len(new_title) <= 30:
+        # Truncate to 30 chars if needed (some models ignore the length instruction)
+        if new_title:
+            if len(new_title) > 30:
+                new_title = new_title[:30]
+                logger.info("Title truncated to 30 chars: conv_id=%s", conv_id)
             await ConvRepository.update_title(conv_id, new_title)
             # Send title_update event via queue
             await queue.put(("title_update", {"title": new_title}))
@@ -149,6 +145,15 @@ async def chat(
                 elif mode == "messages":
                     chunk, metadata = data
 
+                    # Only process streaming AIMessageChunk objects. Skip full
+                    # AIMessage/HumanMessage objects returned by node state
+                    # (qa_node returns messages=[HumanMessage(query),
+                    # AIMessage(answer)] for persistence, and StreamMessagesHandler
+                    # re-emits them, causing query text + duplicated answer to
+                    # leak into full_answer).
+                    if not isinstance(chunk, AIMessageChunk):
+                        continue
+
                     # Skip LLM chunks from non-answer nodes (classify, retrieve,
                     # grade, verify, refine all use ainvoke but graph.astream
                     # with stream_mode="messages" intercepts their LLM calls too).
@@ -209,11 +214,21 @@ async def chat(
             if not clean_answer and full_answer:
                 clean_answer = "根据现有文档无法提供详细回答。"
 
-            # Save the clean answer to database (including sources for future reference)
+            # Inject <think> tags so the frontend can recover reasoning from
+            # the content field when loading historical messages.
+            # The SSE stream already delivers reasoning via event:reasoning,
+            # so this is purely for persistence / backward compatibility.
+            content_for_db = (
+                f"<think>\n{full_reasoning}\n</think>\n\n{clean_answer}"
+                if full_reasoning
+                else clean_answer
+            )
+
+            # Save to database (including sources for future reference)
             await MessageRepository.add_message(
                 conversation_id=conv_id,
                 role="assistant",
-                content=clean_answer,
+                content=content_for_db,
                 reasoning_content=full_reasoning,
                 sources=full_sources,
             )

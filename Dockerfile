@@ -24,7 +24,7 @@ FROM python:3.12-slim AS backend
 
 # 安装系统依赖:
 # - build-essential: 编译 C 扩展（部分 Python 包需要）
-# - libgomp1: PyTorch/OpenMP 运行时依赖
+# - libgomp1: PyTorch/OpenMP 运行时依赖（Jina Reranker）
 # 安装完成后清理 apt 缓存减小镜像
 RUN apt-get update && \
     apt-get install -y --no-install-recommends build-essential libgomp1 && \

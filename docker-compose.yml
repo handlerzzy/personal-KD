@@ -36,7 +36,7 @@ services:
     environment:
       - QDRANT_URL=http://qdrant:6333
     volumes:
-      # 持久化数据目录（知识库、上传文件、BM25索引、SQLite）
+      # 持久化数据目录（知识库、上传文件、BM25索引、SQLite、日志）
       - ./data:/app/backend/data
       # 挂载模型目录（reranker 模型，避免每次构建都下载）
       - ./backend/models:/app/backend/models

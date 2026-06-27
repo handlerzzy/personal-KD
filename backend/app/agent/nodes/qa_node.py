@@ -8,6 +8,7 @@ from langchain_openai import ChatOpenAI
 
 from app.agent.state import AgentState
 from app.answer_cleaner import strip_answer
+from app.config import settings
 from app.utils.sources import build_sources
 
 logger = logging.getLogger(__name__)
@@ -56,11 +57,12 @@ class _ReasoningChatOpenAI(ChatOpenAI):
 
 from app.llm_cache import get_llm as _get_cached_llm  # noqa: E402
 
-_THINKING_BUDGET_MAP = {
-    "factual": 1024,  # 简单事实查询，适度推理
-    "summary": 2048,  # 总结类查询，中等推理
-    "analytical": 4096,  # 分析类查询，深度推理
-    "multi_hop": 4096,  # 多跳查询，重度推理
+_QUERY_TYPE_EFFORT = {
+    "chitchat": None,     # 闲聊，不需要思考
+    "factual": "high",    # 事实查询，常规思考
+    "summary": "high",    # 总结，常规思考
+    "analytical": "high", # 分析，常规思考
+    "multi_hop": "max",   # 多跳推理，最大思考
 }
 
 _HISTORY_WINDOW = {
@@ -81,21 +83,19 @@ def _get_llm(
 ) -> _ReasoningChatOpenAI:
     """Get a cached _ReasoningChatOpenAI instance.
 
-    Caches by (streaming, enable_thinking, budget) to avoid recreating
-    _ReasoningChatOpenAI instances on every call. The MiMo LLM API has a
-    cold start issue where the first call takes 15-20 seconds, while
-    subsequent calls only take 2-4 seconds.
+    Caches by (provider, streaming, enable_thinking, effort) to avoid
+    recreating instances on every call. The cache key includes the configured
+    provider so that switching ``LLM_PROVIDER`` invalidates the cache.
 
-    Thinking budget is dynamically sized based on query_type:
-    - factual: 1024 (simple extraction, moderate reasoning)
-    - summary: 2048 (synthesis, moderate reasoning)
-    - analytical: 4096 (deep analysis, heavy reasoning)
-    - multi_hop: 4096 (multi-step reasoning, heavy thinking)
+    Thinking effort is dynamically sized based on query_type:
+    - chitchat: None (thinking disabled)
+    - factual/summary/analytical: "high" (default)
+    - multi_hop: "max" (maximum reasoning)
 
     For non-retrieval queries (simple chat), thinking is disabled to save resources.
     """
-    budget = _THINKING_BUDGET_MAP.get(query_type, 2048) if enable_thinking else 0
-    cache_key = f"{streaming}:{enable_thinking}:{budget}"
+    effort = _QUERY_TYPE_EFFORT.get(query_type, "high") if enable_thinking else None
+    cache_key = f"{settings.llm_provider}:{streaming}:{enable_thinking}:{effort or 'none'}"
 
     # Check module-level cache first
     if cache_key in _reasoning_llm_cache:
@@ -103,7 +103,7 @@ def _get_llm(
 
     # Cache miss — create via base cache and wrap
     base_llm = _get_cached_llm(
-        streaming=streaming, enable_thinking=enable_thinking, thinking_budget=budget
+        streaming=streaming, enable_thinking=bool(effort), effort=effort or "",
     )
 
     llm = _ReasoningChatOpenAI(
@@ -113,6 +113,7 @@ def _get_llm(
         temperature=base_llm.temperature,
         streaming=base_llm.streaming,
         extra_body=base_llm.extra_body,
+        model_kwargs=getattr(base_llm, "model_kwargs", {}),
     )
     _reasoning_llm_cache[cache_key] = llm
     return llm
@@ -259,6 +260,15 @@ async def qa_node(state: AgentState) -> dict:
     reasoning = full_reasoning
 
     sources = build_sources(docs)
+
+    # Diagnostic: detect if reasoning leaked into content
+    if reasoning and reasoning in content:
+        logger.warning(
+            "Reasoning leaked into content: reasoning=%d chars appears in answer=%d chars",
+            len(reasoning),
+            len(content),
+        )
+        content = content.replace(reasoning, "", 1)
 
     logger.info(
         "qa_node done: answer_len=%d, reasoning_len=%d, sources_count=%d",

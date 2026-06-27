@@ -19,9 +19,30 @@ marked.setOptions({
   gfm: true,
 })
 
+/**
+ * Parse <think> tags from content as a fallback for historical messages
+ * that don't have a separate reasoning_content field.
+ *
+ * Streaming messages receive reasoning via event:reasoning and have
+ * reasoning_content set — this is only needed for DB-persisted messages
+ * where reasoning was embedded in content via <think> tags.
+ */
+const reasoningContent = computed(() => {
+  if (props.message.reasoning_content) {
+    return props.message.reasoning_content
+  }
+  const match = props.message.content.match(/<think>([\s\S]*?)<\/think>/)
+  return match ? match[1].trim() : ''
+})
+
+const displayContent = computed(() => {
+  // Strip <think> tags from content before markdown rendering
+  return props.message.content.replace(/<think>[\s\S]*?<\/think>\n*/g, '').trim()
+})
+
 const renderedContent = computed(() => {
-  if (!props.message.content) return ''
-  const raw = marked.parse(props.message.content) as string
+  if (!displayContent.value) return ''
+  const raw = marked.parse(displayContent.value) as string
   return DOMPurify.sanitize(raw)
 })
 </script>
@@ -34,13 +55,13 @@ const renderedContent = computed(() => {
     <div class="msg-content">
       <!-- Thinking process (AI only) -->
       <ThinkingBlock
-        v-if="message.role === 'assistant' && message.reasoning_content"
-        :reasoning="message.reasoning_content"
+        v-if="message.role === 'assistant' && reasoningContent"
+        :reasoning="reasoningContent"
         :is-streaming="isStreaming"
       />
       <!-- Bubble -->
       <div class="msg-bubble markdown-body">
-        <div v-if="message.content" v-html="renderedContent"/>
+        <div v-if="displayContent" v-html="renderedContent"/>
         <div v-else-if="isStreaming" class="stream-cursor">思考中...</div>
       </div>
       <!-- Sources -->

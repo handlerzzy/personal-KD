@@ -59,7 +59,7 @@ watch(
         <span class="conv-name">{{ currentConv?.title || '新对话' }}</span>
         <div class="status">
           <span class="status-dot" :class="{ online: !streaming }"/>
-          {{ streaming ? '回答中...' : 'mimo-v2.5 已就绪' }}
+          {{ streaming ? '回答中...' : '模型已就绪' }}
         </div>
       </div>
       <span v-else class="conv-name">请选择或创建知识库</span>
