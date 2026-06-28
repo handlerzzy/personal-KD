@@ -54,7 +54,7 @@ START → classify_query → [needs_retrieval?]
 - **LangSmith 评估** — 三维评估（Faithfulness、Answer Correctness、Context Relevance），支持实验追踪与 A/B 测试
 - **答案质量闭环** — 梯度验证 + 精炼流程确保回答质量
 - **多轮对话历史** — SQLite 持久化对话记录，LangGraph checkpointer 管理 Agent 状态
-- **LLM 缓存** — ChatOpenAI 实例缓存 + 启动预热，按 `(streaming, enable_thinking, effort)` 缓存 key
+- **LLM 缓存** — ChatOpenAI 实例缓存 + 启动预热，按 `(provider, streaming, enable_thinking, effort)` 缓存 key
 - **检索指标监控** — `MetricsTracker` JSON 日志：score_drop_k、召回利用率、检索延迟
 - **答案去重** — 自动检测并移除 LLM 回答中的重复内容（DeepSeek 重复循环保护）
 - **安全中间件** — CORS 可配、限流（10次/60秒）、CSP/X-Frame-Options 安全头

@@ -148,30 +148,48 @@ class TestRetrievalIntensityOrder:
 
 
 # ---------------------------------------------------------------------------
-# Test: thinking budget order
+# Test: thinking effort order
 # ---------------------------------------------------------------------------
 
+_EFFORT_ORDER = {None: 0, "high": 1, "max": 2}
 
-class TestThinkingBudgetOrder:
-    """Thinking budget order: factual < summary < analytical <= multi_hop."""
+
+def _effort_sort_key(effort):
+    """Map effort levels (None, 'high', 'max') to sortable ints."""
+    return _EFFORT_ORDER.get(effort, -1)
+
+
+class TestThinkingEffortOrder:
+    """Effort level order: None < high < max."""
 
     @pytest.fixture
-    def budget_map(self):
-        from app.agent.nodes.qa_node import _THINKING_BUDGET_MAP
+    def effort_map(self):
+        from app.agent.nodes.qa_node import _QUERY_TYPE_EFFORT
 
-        return _THINKING_BUDGET_MAP
+        return _QUERY_TYPE_EFFORT
 
-    def test_factual_lightest(self, budget_map):
-        for t in _non_chitchat_types() - {"factual"}:
-            assert budget_map["factual"] < budget_map[t], (
-                f"factual({budget_map['factual']}) should be < {t}({budget_map[t]})"
+    def test_chitchat_has_no_effort(self, effort_map):
+        assert effort_map["chitchat"] is None
+
+    def test_factual_uses_high(self, effort_map):
+        """factual, summary, analytical all use 'high' effort."""
+        assert effort_map["factual"] == "high"
+
+    def test_summary_uses_high(self, effort_map):
+        assert effort_map["summary"] == "high"
+
+    def test_analytical_uses_high(self, effort_map):
+        assert effort_map["analytical"] == "high"
+
+    def test_multi_hop_uses_max(self, effort_map):
+        assert effort_map["multi_hop"] == "max"
+
+    def test_multi_hop_gte_all_others(self, effort_map):
+        """multi_hop should be max — >= all other types."""
+        for t in _all_known_types() - {"multi_hop"}:
+            assert _effort_sort_key(effort_map["multi_hop"]) >= _effort_sort_key(effort_map[t]), (
+                f"multi_hop({effort_map['multi_hop']}) should be >= {t}({effort_map[t]})"
             )
-
-    def test_summary_between_factual_and_analytical(self, budget_map):
-        assert budget_map["factual"] < budget_map["summary"] < budget_map["analytical"]
-
-    def test_multi_hop_ge_analytical(self, budget_map):
-        assert budget_map["multi_hop"] >= budget_map["analytical"]
 
 
 # ---------------------------------------------------------------------------
@@ -293,15 +311,15 @@ class TestConfigConsistency:
                 continue
             assert qtype in C, f"RETRIEVAL_CONFIG missing type '{qtype}' (exists in RETRIEVAL_STRATEGIES)"
 
-    def test_thinking_budget_covers_all_retrieval_types(self):
-        """Every non-chitchat type in STRATEGIES should have a thinking budget."""
+    def test_effort_covers_all_retrieval_types(self):
+        """Every non-chitchat type in STRATEGIES should have an effort entry."""
         from app.agent.nodes.query_classifier import RETRIEVAL_STRATEGIES as S
-        from app.agent.nodes.qa_node import _THINKING_BUDGET_MAP
+        from app.agent.nodes.qa_node import _QUERY_TYPE_EFFORT
 
         for qtype in _non_chitchat_types():
             if qtype in S:
-                assert qtype in _THINKING_BUDGET_MAP, (
-                    f"_THINKING_BUDGET_MAP missing type '{qtype}'"
+                assert qtype in _QUERY_TYPE_EFFORT, (
+                    f"_QUERY_TYPE_EFFORT missing type '{qtype}'"
                 )
 
     def test_history_window_covers_all_retrieval_types(self):
