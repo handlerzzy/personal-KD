@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.agent.graph import close_checkpointer, init_checkpointer
 from app.api import auth, chat, conversation, document, knowledge_base
+from app.config import settings
 from app.persistence.database import close_db, init_db, set_db_path
 
 _LOG_FORMAT = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
@@ -212,6 +213,14 @@ app.include_router(chat.router, prefix="/api")
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.get("/api/upload-config")
+async def upload_config():
+    return {
+        "max_upload_size_mb": settings.max_upload_size_mb,
+        "allowed_types": ["pdf", "txt", "md"],
+    }
 
 
 # ---------- 前端静态文件服务（Docker 部署时使用） ----------

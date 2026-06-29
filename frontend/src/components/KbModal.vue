@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import type { KnowledgeBase } from '../types'
+import { getUploadConfig } from '../api'
 
 const props = defineProps<{
   show: boolean
@@ -22,6 +23,20 @@ const newConvTitle = ref('')
 const selectedFile = ref<File | null>(null)
 const uploadFileName = ref('')
 const fileInputRef = ref<HTMLInputElement | null>(null)
+const maxUploadSizeMb = ref(200)
+const allowedTypes = ref('PDF、TXT、MD')
+
+onMounted(async () => {
+  try {
+    const config = await getUploadConfig()
+    maxUploadSizeMb.value = config.max_upload_size_mb
+    if (config.allowed_types?.length) {
+      allowedTypes.value = config.allowed_types.join('、').toUpperCase()
+    }
+  } catch {
+    // 兜底：使用默认值
+  }
+})
 
 watch(() => props.show, (val) => {
   if (val) {
@@ -103,7 +118,7 @@ function close() {
 已选择: {{ uploadFileName }}
 </p>
         <p class="hint">
-支持 PDF, TXT, Markdown
+支持 {{ allowedTypes }}，单个文件最大 {{ maxUploadSizeMb }}MB
 </p>
       </div>
       <input ref="fileInputRef" type="file" accept=".pdf,.txt,.md" style="display:none" @change="onFileChange">

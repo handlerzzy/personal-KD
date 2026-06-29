@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     reranker_model_path: str = "./models/jina-reranker-v3"
     # Data
     data_dir: str = "./data"
+    # Upload
+    max_upload_size_mb: int = 200
     # Embedding
     embedding_model: str = "embedding-3"
     embedding_dimensions: int = 512

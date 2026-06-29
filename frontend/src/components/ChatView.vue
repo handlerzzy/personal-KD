@@ -65,17 +65,63 @@ watch(
       <span v-else class="conv-name">请选择或创建知识库</span>
     </div>
     <div class="messages" ref="messagesRef">
-      <!-- Welcome state (no conversation yet) -->
+      <!-- Welcome state (no conversation yet) — 根据 doc_count 分层 -->
       <div v-if="!currentConv && !streaming && currentKb" class="welcome-state">
-        <div class="welcome-logo">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="64" height="64">
-            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-            <path d="M2 17l10 5 10-5"/>
-            <path d="M2 12l10 5 10-5"/>
-          </svg>
+        <!-- 步骤指示器 -->
+        <div class="steps-indicator">
+          <div class="step done">
+            <span class="step-dot">✓</span>
+            <span class="step-label">创建知识库</span>
+          </div>
+          <span class="step-line" :class="{ done: currentKb.doc_count > 0 }"></span>
+          <div class="step" :class="{ done: currentKb.doc_count > 0, current: currentKb.doc_count === 0 }">
+            <span class="step-dot">{{ currentKb.doc_count > 0 ? '✓' : '2' }}</span>
+            <span class="step-label">上传文档</span>
+          </div>
+          <span class="step-line"></span>
+          <div class="step">
+            <span class="step-dot">3</span>
+            <span class="step-label">开始对话</span>
+          </div>
         </div>
-        <h2 class="welcome-title">开始新对话</h2>
-        <p class="welcome-hint">向「{{ currentKb.name }}」知识库提问</p>
+
+        <!-- 空 KB：引导上传 -->
+        <template v-if="currentKb.doc_count === 0">
+          <div class="welcome-logo empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <h2 class="welcome-title">知识库还是空的</h2>
+          <p class="welcome-desc">上传文档后，AI 才能基于你的知识库回答问题</p>
+          <div class="welcome-actions">
+            <button class="welcome-btn primary" @click="emit('uploadDoc')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              上传文档
+            </button>
+          </div>
+          <p class="welcome-sub-hint">支持 PDF / TXT / MD 格式，也可以直接提问使用通用知识</p>
+        </template>
+
+        <!-- 有文档 KB：开始对话 -->
+        <template v-else>
+          <div class="welcome-logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="64" height="64">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5"/>
+              <path d="M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <h2 class="welcome-title">开始新对话</h2>
+          <p class="welcome-hint">向「{{ currentKb.name }}」知识库提问</p>
+          <p class="welcome-stats">{{ currentKb.doc_count }} 个文档 · 已就绪</p>
+        </template>
       </div>
 
       <!-- Empty state (conversation exists but no messages) -->
@@ -166,12 +212,23 @@ watch(
       </template>
     </div>
 
+    <!-- 空 KB 上传提示条 -->
+    <div v-if="currentKb && currentKb.doc_count === 0 && !currentConv" class="upload-hint-bar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="16" x2="12" y2="12"/>
+        <line x1="12" y1="8" x2="12.01" y2="8"/>
+      </svg>
+      <span>知识库还没有文档，建议先上传文档获得更好的回答</span>
+      <button class="upload-hint-btn" @click="emit('uploadDoc')">上传文档</button>
+    </div>
+
     <ChatInput
       v-if="currentKb"
       :disabled="streaming || props.uploading"
       :streaming="streaming"
       :uploading="props.uploading"
-      placeholder="输入问题开始对话..."
+      :placeholder="currentKb.doc_count === 0 ? '知识库为空，建议先上传文档...' : '输入问题开始对话...'"
       @send="emit('sendMessage', $event)"
       @stop="emit('stop')"
       @upload-file="emit('uploadFile', $event)"
@@ -205,8 +262,81 @@ watch(
   display: flex; align-items: center; justify-content: center;
 }
 .welcome-logo svg { width: 48px; height: 48px; color: #6366F1; }
+.welcome-logo.empty {
+  width: 80px; height: 80px; border-radius: 20px;
+  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+}
+.welcome-logo.empty svg { width: 36px; height: 36px; color: #D97706; }
 .welcome-title { font-size: 24px; font-weight: 600; color: #1E293B; margin: 0; }
 .welcome-hint { font-size: 14px; color: #94A3B8; margin: 0; }
+.welcome-desc { font-size: 14px; color: #64748B; margin: 0; text-align: center; max-width: 320px; line-height: 1.6; }
+.welcome-actions { display: flex; gap: 12px; margin-top: 4px; }
+.welcome-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 24px; border-radius: 10px;
+  font-size: 14px; font-weight: 500; cursor: pointer;
+  transition: background 200ms ease, box-shadow 200ms ease, transform 100ms ease;
+  border: none; font-family: inherit;
+}
+.welcome-btn:active { transform: scale(0.97); }
+.welcome-btn.primary {
+  background: #6366F1; color: #fff;
+}
+.welcome-btn.primary:hover { background: #4F46E5; box-shadow: 0 2px 8px rgba(99,102,241,0.3); }
+.welcome-sub-hint { font-size: 12px; color: #CBD5E1; margin: 0; margin-top: 2px; }
+.welcome-stats {
+  font-size: 12px; color: #10B981; margin: 0;
+  background: #ECFDF5; padding: 4px 12px; border-radius: 12px;
+}
+
+/* 步骤指示器 */
+.steps-indicator {
+  display: flex; align-items: center; gap: 0;
+  padding: 12px 24px;
+  background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px;
+  max-width: 480px; width: 100%;
+}
+.step {
+  display: flex; align-items: center; gap: 6px;
+  white-space: nowrap;
+}
+.step.done .step-label { color: #10B981; }
+.step.current .step-label { color: #6366F1; font-weight: 600; }
+.step-label { font-size: 12px; color: #94A3B8; }
+.step-dot {
+  width: 20px; height: 20px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; flex-shrink: 0;
+  background: #E2E8F0; color: #94A3B8;
+}
+.step.done .step-dot { background: #D1FAE5; color: #10B981; }
+.step.current .step-dot { background: #EEF2FF; color: #6366F1; }
+.step-line {
+  flex: 1; height: 2px; background: #E2E8F0;
+  margin: 0 8px; min-width: 16px;
+}
+.step-line.done { background: #10B981; }
+
+/* 空 KB 上传提示条 */
+.upload-hint-bar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px;
+  margin: 0 24px;
+  background: #EFF6FF; border: 1px solid #BFDBFE;
+  border-radius: 10px;
+  font-size: 13px; color: #1E40AF;
+}
+.upload-hint-bar svg { flex-shrink: 0; color: #3B82F6; }
+.upload-hint-bar span { flex: 1; }
+.upload-hint-btn {
+  padding: 4px 12px; border-radius: 6px;
+  border: 1px solid #3B82F6; background: #fff;
+  color: #2563EB; font-size: 12px; font-weight: 500;
+  cursor: pointer; font-family: inherit;
+  transition: background 200ms ease;
+  white-space: nowrap;
+}
+.upload-hint-btn:hover { background: #DBEAFE; }
 .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94A3B8; gap: 8px; }
 .empty-state p { font-size: 14px; }
 .empty-hint { font-size: 12px; color: #CBD5E1; }

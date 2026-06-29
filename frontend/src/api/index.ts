@@ -216,6 +216,11 @@ export function deleteDocument(kbId: string, docId: string): Promise<void> {
   return requestJson(`/knowledge-bases/${kbId}/documents/${docId}`, { method: 'DELETE' })
 }
 
+// Upload config
+export function getUploadConfig(): Promise<{ max_upload_size_mb: number; allowed_types: string[] }> {
+  return requestJson('/upload-config')
+}
+
 // Conversations
 export function getConversations(kbId: string): Promise<Conversation[]> {
   return requestJson(`/knowledge-bases/${kbId}/conversations`)

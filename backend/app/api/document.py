@@ -8,7 +8,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
-from app.config import KB_DIR, UPLOAD_DIR
+from app.config import KB_DIR, UPLOAD_DIR, settings
 from app.deps import get_user_kb
 from app.document.chunker import split_text
 from app.document.embedder import embed_texts
@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/knowledge-bases/{kb_id}/documents", tags=["Documents"])
 
 ALLOWED_TYPES = {"pdf": "pdf", "txt": "txt", "md": "md", "markdown": "md"}
-MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50MB
 
 
 def _validate_id(id_value: str, name: str = "ID") -> None:
@@ -89,9 +88,10 @@ async def upload_document(
         raise HTTPException(400, f"不支持的文件类型: .{ext}，仅支持 PDF/TXT/MD")
 
     # Read with size limit
-    content = await file.read(MAX_UPLOAD_SIZE + 1)
-    if len(content) > MAX_UPLOAD_SIZE:
-        raise HTTPException(413, f"文件过大，最大允许 {MAX_UPLOAD_SIZE // 1024 // 1024}MB")
+    max_size = settings.max_upload_size_mb * 1024 * 1024
+    content = await file.read(max_size + 1)
+    if len(content) > max_size:
+        raise HTTPException(413, f"文件过大，最大允许 {settings.max_upload_size_mb}MB")
 
     # Sanitize filename (strip directory components to prevent path traversal)
     safe_name = Path(original_name).name

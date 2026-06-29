@@ -15,17 +15,28 @@ const emit = defineEmits<{
 const docs = ref<KBDocument[]>([])
 const loading = ref(false)
 const expanded = ref(false)
+// Track whether user has manually toggled — prevents auto-expand from overriding user choice
+const userToggled = ref(false)
 
 async function fetchDocs() {
   if (!props.kbId) { docs.value = []; return }
   loading.value = true
   try {
     docs.value = await api.getDocuments(props.kbId)
+    // Auto-expand when KB has no documents, unless user manually collapsed
+    if (docs.value.length === 0 && !userToggled.value) {
+      expanded.value = true
+    }
   } catch (e) {
     console.error('Failed to fetch docs:', e)
   } finally {
     loading.value = false
   }
+}
+
+function toggleDocs() {
+  expanded.value = !expanded.value
+  userToggled.value = true
 }
 
 watch(() => [props.kbId, props.refreshKey], () => {
@@ -47,7 +58,7 @@ function fileTypeIcon(type: string) {
 
 <template>
   <div class="doc-section" v-if="kbId">
-    <div class="doc-header" @click="expanded = !expanded">
+    <div class="doc-header" @click="toggleDocs">
       <span>文档 ({{ docs.length }})</span>
       <svg class="arrow" :class="{ rotated: expanded }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
         <polyline points="6 9 12 15 18 9"/>

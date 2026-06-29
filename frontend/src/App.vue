@@ -31,6 +31,7 @@ const changePasswordShow = ref(false)
 const sendingNewMessage = ref(false)
 const uploading = ref(false)
 const uploadingFileName = ref('')
+const maxUploadSizeMb = ref(200)
 
 // Toast
 const toastShow = ref(false)
@@ -80,6 +81,12 @@ async function initApp() {
       await selectKb(savedKb)
     }
   }
+
+  // Fetch upload config for client-side validation
+  try {
+    const config = await api.getUploadConfig()
+    maxUploadSizeMb.value = config.max_upload_size_mb
+  } catch { /* 兜底使用默认值 */ }
 }
 
 onMounted(async () => {
@@ -131,10 +138,16 @@ function closeModal() {
 
 async function handleCreateKb(name: string, desc: string) {
   await createKb(name, desc)
+  showToast(`知识库「${name}」已创建，请上传文档以构建知识库`, 'info')
 }
 
 async function handleUpload(file: File) {
   if (!currentKb.value || uploading.value) return
+  const maxSize = maxUploadSizeMb.value * 1024 * 1024
+  if (file.size > maxSize) {
+    showToast(`文件过大（${(file.size / 1024 / 1024).toFixed(1)}MB），最大允许 ${maxUploadSizeMb.value}MB`, 'error')
+    return
+  }
   uploading.value = true
   uploadingFileName.value = file.name
   try {
